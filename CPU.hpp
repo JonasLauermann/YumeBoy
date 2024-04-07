@@ -5,8 +5,8 @@
 class YumeBoy;
 
 class CPU {
-    // Reference to Emulator
-    YumeBoy &yume_boy_;
+    YumeBoy &yume_boy_; // Reference to Emulator
+    uint64_t time_;     // the amount of time the cpu has been running for (in T-cycles / 2^22 Hz)
 
     // Registers
     uint8_t A = 0x0;
@@ -92,7 +92,8 @@ class CPU {
     void write_IE(uint8_t value) { IE = value; }
 
     private:
-    void m_cycle(uint8_t cycles = 1) { /* TODO */ }
+    /* one cpu cycle takes four T-cycles (2^22 Hz) */
+    void m_cycle(uint8_t cycles = 1) { time_ += (cycles * 4); }
 
     uint8_t fetch_byte();
 
@@ -113,6 +114,7 @@ class CPU {
     CPU() = delete;
     CPU(YumeBoy &yume_boy) : yume_boy_(yume_boy) { }
 
-    void start_loop();
+    /* Runs the CPU until it reaches the next "stable" state. Returns the amount of time spent. */
+    uint32_t tick();
 
 };

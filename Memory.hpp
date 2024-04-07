@@ -1,10 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <iostream>
 
 
-/** A Memory STUB used as placeholder for missing memory_ components. */
 class Memory {
     std::vector<uint8_t> memory_;
     const uint16_t begin_memory_range_, end_memory_range_;   // both begin and end are included in range

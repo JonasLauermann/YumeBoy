@@ -4,38 +4,43 @@
 #include "Cartridge.hpp"
 #include "Memory.hpp"
 #include "MemoryStub.hpp"
+#include "PPU.hpp"
 
 #include <memory>
 
 
 /** Stores all components of the emulator and facilitates communication between components. */
 class YumeBoy {
+    int64_t time_budget = 0;    // the time budget of the CPU/PPU. A positive budget indicates that the PPU is running behind and vice versa.
+
     std::unique_ptr<CPU> cpu_;
     std::unique_ptr<Cartridge> cartridge_;
-    std::unique_ptr<MemorySTUB> vram_;
+    std::unique_ptr<PPU> ppu_;
     std::unique_ptr<MemorySTUB> audio_;
-    std::unique_ptr<MemorySTUB> lcd_;
     std::unique_ptr<Memory> hram_;
 
     public:
     YumeBoy(const std::string& filepath) {
         cpu_ = std::make_unique<CPU>(*this);
         cartridge_ = std::make_unique<Cartridge>(filepath);
-        vram_ = std::make_unique<MemorySTUB>("VRAM", 0x8000, 0x9FFF);
+        ppu_ = std::make_unique<PPU>();
         audio_ = std::make_unique<MemorySTUB>("Audio", 0xFF10, 0xFF26);
-        lcd_ = std::make_unique<MemorySTUB>("LCD Display", 0xFF40, 0xFF4B);
         hram_ = std::make_unique<Memory>(0xFF80, 0xFFFE);
     }
 
-    void start() { cpu_->start_loop(); }
+    void tick() {
+        if (time_budget <= 0)
+            time_budget += cpu_->tick();
+        else
+            time_budget -= ppu_->tick();
+    }
 
     uint8_t read_memory(uint16_t addr) {
         // Cartridge ROM
         if (addr <= 0x7FFF)
             return cartridge_->read_memory(addr);
         else if (0x8000 <= addr and addr <= 0x9FFF)
-            // TODO: VRAM
-            return vram_->read_memory(addr);
+            return ppu_->read_vram(addr);
         else if (0xA000 <= addr and addr <= 0xBFFF)
             // TODO: Cartridge RAM
             throw std::runtime_error("Cartridge RAM not implemented");
@@ -46,8 +51,7 @@ class YumeBoy {
             // TODO: Echo RAM (Nintendo says use of this area is prohibited)
             throw std::runtime_error("Echo RAM not implemented");
         else if (0xFE00 <= addr and addr <= 0xFE9F)
-            // TODO: OAM
-            throw std::runtime_error("OAM not implemented");
+            return ppu_->read_oam_ram(addr);
         else if (0xFEA0 <= addr and addr <= 0xFEFF)
             // TODO: Not Usable (Nintendo says use of this area is prohibited)
             throw std::runtime_error("Not Usable (Nintendo says use of this area is prohibited)");
@@ -59,7 +63,7 @@ class YumeBoy {
             else if (0xFF10 <= addr and addr <= 0xFF26)
                 return audio_->read_memory(addr);
             else if (0xFF40 <= addr and addr <= 0xFF4B)
-                return lcd_->read_memory(addr);
+                return ppu_->read_lcd_register(addr);
             else
                 // TODO: I/O Registers
                 throw std::runtime_error("I/O Registers not implemented");
@@ -76,8 +80,7 @@ class YumeBoy {
         if (addr <= 0x7FFF)
             throw std::runtime_error("ROM is not writable");
         else if (0x8000 <= addr and addr <= 0x9FFF)
-            // TODO: VRAM
-            vram_->write_memory(addr, value);
+            ppu_->write_vram(addr, value);
         else if (0xA000 <= addr and addr <= 0xBFFF)
             // TODO: Cartridge RAM
             throw std::runtime_error("Cartridge RAM not implemented");
@@ -88,8 +91,7 @@ class YumeBoy {
             // TODO: Echo RAM (Nintendo says use of this area is prohibited)
             throw std::runtime_error("Echo RAM not implemented");
         else if (0xFE00 <= addr and addr <= 0xFE9F)
-            // TODO: OAM
-            throw std::runtime_error("OAM not implemented");
+            ppu_->write_oam_ram(addr, value);
         else if (0xFEA0 <= addr and addr <= 0xFEFF)
             // TODO: Not Usable (Nintendo says use of this area is prohibited)
             throw std::runtime_error("Not Usable (Nintendo says use of this area is prohibited)");
@@ -101,7 +103,7 @@ class YumeBoy {
             else if (0xFF10 <= addr and addr <= 0xFF26)
                 audio_->write_memory(addr, value);
             else if (0xFF40 <= addr and addr <= 0xFF4B)
-                lcd_->write_memory(addr, value);
+                ppu_->write_lcd_register(addr, value);
             else
                 // TODO: I/O Registers
                 throw std::runtime_error("I/O Registers not implemented");

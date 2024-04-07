@@ -2,6 +2,7 @@
 
 int main() {
     YumeBoy yume_boy("../Tetris (World) (Rev 1).gb");
-    yume_boy.start();
+    while (true)
+        yume_boy.tick();
     return 0;
 }
