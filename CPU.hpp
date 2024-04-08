@@ -103,12 +103,18 @@ class CPU {
     void LD_memory(uint16_t addr, uint8_t value);
     /* Push 16-Bit value to stack */
     void PUSH(uint16_t value);
+    /* Pop 16-Bit value from stack */
+    uint16_t POP();
+    /* subtract the contents of register source from the contents of register A, and store the results in register A. */
+    void SUB(uint8_t const &source);
     /* Subtract the contents of register source and the carry flag from the contents of register A, and store the results in register A. */
     void SBC(uint8_t const &source);
     /* Compare the contents of register source and the contents of register A by calculating A - source, and set the Z flag if they are equal. */
     void CP_register(uint8_t const &target);
     /* compare the contents of memory specified by addr and the contents of register A by calculating A - (addr), and set the Z flag if they are equal. */
     void CP_memory(uint16_t addr);
+    /* Rotate the contents of register `target` to the left. */
+    void RL(uint8_t &target);
 
     public:
     CPU() = delete;

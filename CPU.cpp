@@ -25,19 +25,36 @@ void CPU::PUSH(uint16_t value)
 {
     m_cycle();  // internal cycle
     m_cycle();
-    yume_boy_.write_memory(SP--, value >> 8);
+    yume_boy_.write_memory(--SP, value >> 8);
     m_cycle();
-    yume_boy_.write_memory(SP--, value & 0xFF);
+    yume_boy_.write_memory(--SP, value & 0xFF);
+}
+
+uint16_t CPU::POP()
+{
+    m_cycle();
+    uint8_t lower = yume_boy_.read_memory(SP++);
+    m_cycle();
+    uint8_t higher = yume_boy_.read_memory(SP++);
+    return lower | (higher << 8);
+}
+
+void CPU::SUB(uint8_t const &source)
+{
+    z(A == source);
+    n(true);
+    h((A & 0xF) < (source & 0xF));
+    c(A < source);
+    A -= source;
 }
 
 void CPU::SBC(uint8_t const &source)
 {
-    uint8_t res = A - (source + c());
     z(A == (source + c()));
     n(true);
     h((A & 0xF) < ((source + c()) & 0xF));
     c(A < (source + c()));
-    A = res;
+    A -= source + c();
 }
 
 void CPU::CP_register(uint8_t const &target)
@@ -58,6 +75,16 @@ void CPU::CP_memory(uint16_t addr)
     c(A < mem_value);
 }
 
+void CPU::RL(uint8_t &target)
+{
+    uint8_t old_carry = c();
+    c(target & 1 << 7);
+    target = (target << 1) | old_carry;
+    z(target == 0);
+    n(false);
+    h(false);
+}
+
 uint32_t CPU::tick()
 {
     /* set time of current tick to 0. */
@@ -67,19 +94,33 @@ uint32_t CPU::tick()
      *    1 := EI was just executed, do nothing and decrement by one.
      *    0 := EI was executed in the previous fetch-execute cycle, enable interrupts and decrement by one.
      *   -1 := Do nothing. */
-    int8_t ei_delay = -1;
+    int8_t ei_delay = -1;   // TODO: move out of method since it is no longer an infinite loop
 
     // fetch program counter
     uint8_t opcode = fetch_byte();
     switch (opcode) {
+        case 0x00:  // NOP
+            break;
+
         case 0x03: { // increment the contents of register pair BC by 1.
             m_cycle();
             BC(BC() + 1);
             break;
         }
 
+        case 0x04: { // increment the contents of register B by 1.
+            h((B & 0xF) == 0xF);
+            ++B;
+            z(B == 0);
+            n(false);
+            break;
+        }
+
         case 0x05: { // decrement the contents of register B by 1.
+            h((B & 0xF) == 0);
             --B;
+            z(B == 0);
+            n(true);
             break;
         }
 
@@ -95,7 +136,18 @@ uint32_t CPU::tick()
         }
 
         case 0x0C: { // increment the contents of register C by 1.
+            h((C & 0xF) == 0xF);
             ++C;
+            z(C == 0);
+            n(false);
+            break;
+        }
+
+        case 0x0D: { // decrement the contents of register C by 1.
+            h((C & 0xF) == 0);
+            --C;
+            z(C == 0);
+            n(true);
             break;
         }
 
@@ -115,8 +167,49 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x15: { // decrement the contents of register D by 1.
+            h((D & 0xF) == 0);
+            --D;
+            z(D == 0);
+            n(true);
+            break;
+        }
+
+        case 0x16: { // load the 8-bit immediate operand d8 into register D.
+            D = fetch_byte();
+            break;
+        }
+
+        case 0x17: { // rotate the contents of register A to the left.
+            RL(A);
+            break;
+        }
+
+        case 0x18: { // jump s8 steps from the current address in the program counter (PC).
+            int8_t offset = fetch_byte();
+            m_cycle();
+            PC += offset;
+            break;
+        }
+
+        case 0x19: { // add the contents of register pair DE to the contents of register pair HL, and store the results in register pair HL.
+            m_cycle(); // internal cycle
+            n(false);
+            h((HL() & 0xFFF) + (DE() & 0xFFF) > 0xFFF);
+            c(HL() + DE() > 0xFFFF);
+            break;
+        }
+
         case 0x1A: { // load the 8-bit contents of memory specified by register pair DE into register A.
             LD_register(A, DE());
+            break;
+        }
+
+        case 0x1D: { // decrement the contents of register E by 1.
+            h((E & 0xF) == 0);
+            --E;
+            z(E == 0);
+            n(true);
             break;
         }
 
@@ -138,9 +231,31 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x22: { // store value in register A into the byte pointed to by HL and increment HL afterward.
+            LD_memory(HL(), A);
+            HL(HL() + 1);
+            break;
+        }
+
         case 0x23: { // increment the contents of register pair HL by 1.
             m_cycle();
             HL(HL() + 1);
+            break;
+        }
+
+        case 0x24: { // increment the contents of register H by 1.
+            h((H & 0xF) == 0xF);
+            ++H;
+            z(H == 0);
+            n(false);
+            break;
+        }
+
+        case 0x28: { // if the z flag is true, jump s8 steps from the current address stored in the program counter (PC).
+            int8_t offset = fetch_byte();
+            if (not z()) break;
+            m_cycle();
+            PC += offset;
             break;
         }
 
@@ -161,6 +276,22 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x3C: { // increment the contents of register A by 1.
+            h((A & 0xF) == 0xF);
+            ++A;
+            z(A == 0);
+            n(false);
+            break;
+        }
+
+        case 0x3D: { // decrement the contents of register A by 1.
+            h((A & 0xF) == 0);
+            --A;
+            z(A == 0);
+            n(true);
+            break;
+        }
+
         case 0x3E: { // load the 8-bit immediate operand d8 into register A.
             A = fetch_byte();
             break;
@@ -168,6 +299,11 @@ uint32_t CPU::tick()
 
         case 0x45: { // load the contents of register L into register B.
             B = L;
+            break;
+        }
+
+        case 0x4F: { // load the contents of register A into register C.
+            C = A;
             break;
         }
 
@@ -181,8 +317,18 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x57: { // load the contents of register A into register D.
+            D = A;
+            break;
+        }
+
         case 0x66: { // load the 8-bit contents of memory specified by register pair HL into register H.
             LD_register(H, HL());
+            break;
+        }
+
+        case 0x67: { // load the contents of register A into register H.
+            H = A;
             break;
         }
 
@@ -206,6 +352,16 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x7B: { // load the contents of register E into register A.
+            A = E;
+            break;
+        }
+
+        case 0x7C: { // load the contents of register H into register A.
+            A = H;
+            break;
+        }
+
         case 0x7D: { // load the contents of register L into register A.
             A = L;
             break;
@@ -214,11 +370,16 @@ uint32_t CPU::tick()
         case 0x86: { // add the contents of memory specified by register pair HL to the contents of register A, and store the results in register A.
             m_cycle();
             auto mem = yume_boy_.read_memory(HL());
-            z(A + mem == 0);
             n(false);
             h((A & 0xF) + (mem & 0xF) > 0xF);
             c(A + mem > 0xFF);
             A += mem;
+            z(A == 0);
+            break;
+        }
+
+        case 0x90: { // subtract the contents of register B from the contents of register A, and store the results in register A.
+            SUB(B);
             break;
         }
 
@@ -256,14 +417,36 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xC1: { // pop the contents from the memory stack into register pair into register pair BC.
+            BC(POP());
+            break;
+        }
+
+        case 0xC5: { // push the contents of register pair BC onto the memory stack.
+            PUSH(BC());
+            break;
+        }
+
+        case 0xC9: { // RET - Pop from the memory stack the program counter PC value pushed when the subroutine was called, returning control to the source program.
+            PC = POP();
+            m_cycle();  // internal cycle
+            break;
+        }
+
         case 0xCB: { // Prefix -> fetch next byte to complete opcode
             opcode = fetch_byte();
             switch (opcode) {
-                case 0x7C:  // Test bit 7 in register H, set the zero flag if bit not set.
-                    z(not (H & 1 << 7));
+                case 0x11: { // rotate the contents of register C to the left.
+                    RL(C);
+                    break;
+                }
+
+                case 0x7C: { // test bit 7 in register H, set the zero flag if bit not set.
+                    z(not(H & 1 << 7));
                     n(false);
                     h(true);
                     break;
+                }
 
                 default:
                     std::cerr << "Unknown CPU instruction: 0xCB" << std::hex << std::uppercase << (int) opcode
@@ -284,13 +467,18 @@ uint32_t CPU::tick()
             break;
         }
 
-        /* In memory, push the program counter PC value corresponding to the address following the CALL instruction
-         * to the 2 bytes following the byte specified by the current stack pointer SP. Then load the 16-bit
+        /* CALL - In memory, push the program counter PC value corresponding to the address following the CALL
+         * instruction to the 2 bytes following the byte specified by the current stack pointer SP. Then load the 16-bit
          * immediate operand a16 into PC. */
         case 0xCD: {
             uint16_t target_addr = (fetch_byte() | fetch_byte() << 8);
             PUSH(PC);
             PC = target_addr;
+            break;
+        }
+
+        case 0xD1: { // pop the contents from the memory stack into register pair into register pair DE.
+            DE(POP());
             break;
         }
 
