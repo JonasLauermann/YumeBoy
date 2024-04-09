@@ -197,6 +197,7 @@ uint32_t CPU::tick()
             n(false);
             h((HL() & 0xFFF) + (DE() & 0xFFF) > 0xFFF);
             c(HL() + DE() > 0xFFFF);
+            HL(HL() + DE());
             break;
         }
 

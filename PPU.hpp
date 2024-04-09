@@ -170,21 +170,21 @@ class PPU {
                     uint8_t y = fetch_window ? p.LY - (p.WY / 8) : (((p.LY + p.SCY) & 0xFF) / 8);
                     assert(x < 32 and y < 32);
 
-                    uint16_t tile_id_addr = tile_map_addr + x + (y * 0x10);
+                    uint16_t tile_id_addr = tile_map_addr + x + (y * 0x20);
                     tile_id = p.vram_[tile_id_addr - VRAM_BEGIN];
                     break;
                 }
                 case 1: { // Fetch Tile Data (Low)
                     // determine which tile-map is in use based on LCDC bit 4
                     uint16_t tile_data_addr = p.LCDC & 1 << 4 ? 0x8000 + (tile_id << 4) : 0x9000 + (((int8_t)tile_id) << 4);
-                    uint8_t line_offset = fetch_window ? ((p.LY - p.WY) % 8) * 2 : ((p.LY - p.SCY) % 8) * 2;
+                    uint8_t line_offset = fetch_window ? ((p.LY - p.WY) % 8) * 2 : ((p.LY + p.SCY) % 8) * 2;
                     low_data = p.vram_[tile_data_addr - VRAM_BEGIN + line_offset];
                     break;
                 }
                 case 2: { // Fetch Tile Data (High)
                     // determine which tile-map is in use based on LCDC bit 4
                     uint16_t tile_data_addr = p.LCDC & 1 << 4 ? 0x8000 + (tile_id << 4) : 0x9000 + (((int8_t)tile_id) << 4);
-                    uint8_t line_offset = fetch_window ? ((p.LY - p.WY) % 8) * 2 : ((p.LY - p.SCY) % 8) * 2;
+                    uint8_t line_offset = fetch_window ? ((p.LY - p.WY) % 8) * 2 : ((p.LY + p.SCY) % 8) * 2;
                     high_data = p.vram_[tile_data_addr - VRAM_BEGIN + line_offset + 1];
                     break;
                 }
@@ -504,7 +504,7 @@ public:
                 }
 
                 // if BG is disabled, make BG pixels use color ID 0
-                if (LCDC & 1 and px.pallet == BG)
+                if (not (LCDC & 1) and px.pallet == BG)
                     px.color = 0;
 
                 // retrieve color from pallet and push to LCD
@@ -513,12 +513,15 @@ public:
                 switch (px.pallet) {
                     case BG: {
                         c = (BGP >> (2 * px.color)) & 0b11;
+                        break;
                     }
                     case S0: {
                         c = (OBP0 >> (2 * px.color)) & 0b11;
+                        break;
                     }
                     case S1: {
                         c = (OBP1 >> (2 * px.color)) & 0b11;
+                        break;
                     }
                 }
                 lcd[LY * 160 + fifo_pushed_pixels] = c;
