@@ -1,7 +1,8 @@
-#include <iostream>
 #include "CPU.hpp"
 
+#include <iostream>
 #include "YumeBoy.hpp"
+
 
 uint8_t CPU::fetch_byte()
 {
