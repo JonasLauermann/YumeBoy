@@ -103,6 +103,11 @@ uint32_t CPU::tick()
         case 0x00:  // NOP
             break;
 
+        case 0x01: { // load the 2 bytes of immediate data into register pair BC.
+            BC(fetch_byte() | fetch_byte() << 8);
+            break;
+        }
+
         case 0x03: { // increment the contents of register pair BC by 1.
             m_cycle();
             BC(BC() + 1);
@@ -261,6 +266,13 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x2A: { // load the contents of memory specified by register pair HL into register A, and simultaneously increment the contents of HL.
+            A = yume_boy_.read_memory(HL());
+            m_cycle();
+            HL(HL() + 1);
+            break;
+        }
+
         case 0x31: { // load next two byte into register SP
             SP = fetch_byte() | fetch_byte() << 8;
             break;
@@ -275,6 +287,12 @@ uint32_t CPU::tick()
         case 0x33: { // increment the contents of register pair SP by 1.
             m_cycle();
             ++SP;
+            break;
+        }
+
+        case 0x36: { // store the contents of 8-bit immediate operand d8 in the memory location specified by register pair HL.
+            yume_boy_.write_memory(HL(), fetch_byte());
+            m_cycle();
             break;
         }
 
@@ -404,6 +422,15 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xB1: { // A OR C
+            A = A | C;
+            z(A == 0);
+            n(false);
+            h(false);
+            c(false);
+            break;
+        }
+
         case 0xB9: { // compare the contents of register C and the contents of register A by calculating A - C, and set the Z flag if they are equal.
             CP_register(C);
             break;
@@ -421,6 +448,12 @@ uint32_t CPU::tick()
 
         case 0xC1: { // pop the contents from the memory stack into register pair into register pair BC.
             BC(POP());
+            break;
+        }
+
+        case 0xC3: { // JP a16 - Load the 16-bit immediate operand a16 into the program counter (PC). a16 specifies the address of the subsequently executed instruction.
+            PC = (fetch_byte() | fetch_byte() << 8);
+            m_cycle();  // internal
             break;
         }
 
@@ -499,8 +532,19 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xEA: { // store the contents of register A in the internal RAM or register specified by the 16-bit immediate operand a16.
+            yume_boy_.write_memory(fetch_byte() | fetch_byte() << 8, A);
+            m_cycle();
+            break;
+        }
+
         case 0xF0: { // load into register A the contents of the internal RAM, port register, or mode_ register at the address in the range 0xFF00-0xFFFF specified by the 8-bit immediate operand a8.
             LD_register(A, 0xFF00 + fetch_byte());
+            break;
+        }
+
+        case 0xF3: { // DI - Reset the interrupt master enable (IME) flag and prohibit maskable interrupts.
+            IME = false;
             break;
         }
 

@@ -1,7 +1,9 @@
 #include "Cartridge.hpp"
 
+#include <array>
 
-const std::vector<uint8_t> boot_rom = {
+
+constexpr std::array<uint8_t, 256> boot_rom = {
         0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32, 0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
         0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3, 0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
         0x47, 0x21, 0x04, 0x01, 0xE5, 0x11, 0xCB, 0x00, 0x1A, 0x13, 0xBE, 0x20, 0x6B, 0x23, 0x7D, 0xFE,
@@ -20,10 +22,32 @@ const std::vector<uint8_t> boot_rom = {
         0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E, 0xFF, 0xFF, 0x3C, 0xE0, 0x50
 };
 
-uint8_t Cartridge::read_memory(uint16_t addr)
+uint8_t Cartridge::read_rom(uint16_t addr)
 {
-    assert(addr <= 0x7FFF);
+    assert(addr <= rom_bytes_.size());
     if (boot_rom_enabled == 0 and addr <= 0xFF)
         return boot_rom[addr];
     return rom_bytes_[addr];
+}
+
+uint8_t Cartridge::read_ram(uint16_t addr)
+{
+    assert(addr <= ram_bytes_.size());
+    return ram_bytes_[addr];
+}
+
+void Cartridge::write_ram(uint16_t addr, uint8_t value)
+{
+    assert(addr <= ram_bytes_.size());
+    ram_bytes_[addr] = value; 
+}
+
+/*==========================================================================================================================*/
+/* ROM ONLY                                                                                                                 */
+/*==========================================================================================================================*/
+
+uint8_t ROM_ONLY::read_rom(uint16_t addr)
+{
+    assert(addr <= 0x7FFF);
+    return Cartridge::read_rom(addr);
 }
