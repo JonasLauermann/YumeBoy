@@ -91,12 +91,6 @@ uint32_t CPU::tick()
     /* set time of current tick to 0. */
     time_ = 0;
 
-    /* Used to realize the delayed effect of the *EI* cpu instruction.
-     *    1 := EI was just executed, do nothing and decrement by one.
-     *    0 := EI was executed in the previous fetch-execute cycle, enable interrupts and decrement by one.
-     *   -1 := Do nothing. */
-    int8_t ei_delay = -1;   // TODO: move out of method since it is no longer an infinite loop
-
     // fetch program counter
     uint8_t opcode = fetch_byte();
     switch (opcode) {
@@ -290,6 +284,30 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x34: { // increment the contents of memory specified by register pair HL by 1.
+            uint8_t val = yume_boy_.read_memory(HL());
+            m_cycle();
+            h((val & 0xF) == 0xF);
+            ++val;
+            yume_boy_.write_memory(HL(), val);
+            m_cycle();
+            z(val == 0);
+            n(false);
+            break;
+        }
+
+        case 0x35: { // decrement the contents of memory specified by register pair HL by 1.
+            uint8_t val = yume_boy_.read_memory(HL());
+            m_cycle();
+            h((val & 0xF) == 0);
+            --val;
+            yume_boy_.write_memory(HL(), val);
+            m_cycle();
+            z(val == 0);
+            n(true);
+            break;
+        }
+
         case 0x36: { // store the contents of 8-bit immediate operand d8 in the memory location specified by register pair HL.
             yume_boy_.write_memory(HL(), fetch_byte());
             m_cycle();
@@ -413,6 +431,14 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xA7: { // A AND A (effectively only sets flags)
+            z(A == 0);
+            n(false);
+            h(true);
+            c(false);
+            break;
+        }
+
         case 0xAF: { // A XOR A (effectively sets register A to 0)
             A = 0;
             z(true);
@@ -446,6 +472,14 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xC0: { // RET NZ - If the Z flag is false, control is returned to the source program by popping from the memory stack the program counter PC value that was pushed to the stack when the subroutine was called.
+            m_cycle();  // internal cycle
+            if (z()) break;
+            PC = POP();
+            m_cycle();  // internal cycle
+            break;
+        }
+
         case 0xC1: { // pop the contents from the memory stack into register pair into register pair BC.
             BC(POP());
             break;
@@ -459,6 +493,14 @@ uint32_t CPU::tick()
 
         case 0xC5: { // push the contents of register pair BC onto the memory stack.
             PUSH(BC());
+            break;
+        }
+
+        case 0xC8: { // RET Z - If the Z flag is true, control is returned to the source program by popping from the memory stack the program counter PC value that was pushed to the stack when the subroutine was called.
+            m_cycle();  // internal cycle
+            if (not z()) break;
+            PC = POP();
+            m_cycle();  // internal cycle
             break;
         }
 
@@ -517,8 +559,25 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xD5: { // Push the contents of register pair DE onto the memory stack.
+            PUSH(DE());
+            break;
+        }
+
+        case 0xD9: { // RETI - Used when an interrupt-service routine finishes. The address for the return from the interrupt is loaded in the program counter PC. The master interrupt enable flag is returned to its pre-interrupt status.
+            IME = true; // as far as I can tell RETI does not have a one-instruction delay like EI
+            PC = POP();
+            m_cycle();  // internal cycle
+            break;
+        }
+
         case 0xE0: { // store the contents of register A in the internal RAM, port register, or mode_ register at the address in the range 0xFF00-0xFFFF specified by the 8-bit immediate operand a8.
             LD_memory(0xFF00 + fetch_byte(), A);
+            break;
+        }
+
+        case 0xE1: { // pop the contents from the memory stack into register pair into register pair HL.
+            HL(POP());
             break;
         }
 
@@ -543,8 +602,30 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xF1: { // pop the contents from the memory stack into register pair into register pair AF.
+            AF(POP());
+            break;
+        }
+
         case 0xF3: { // DI - Reset the interrupt master enable (IME) flag and prohibit maskable interrupts.
             IME = false;
+            EI_delay = -1;
+            break;
+        }
+
+        case 0xF5: { // Push the contents of register pair AF onto the memory stack.
+            PUSH(AF());
+            break;
+        }
+
+        case 0xFA: { // load into register A the contents of the internal RAM or register specified by the 16-bit immediate operand a16.
+            A = yume_boy_.read_memory(fetch_byte() | fetch_byte() << 8);
+            m_cycle();
+            break;
+        }
+
+        case 0xFB: { // EI - Set the interrupt master enable (IME) flag and enable maskable interrupts. This instruction can be used in an interrupt routine to enable higher-order interrupts.
+            EI_delay = 1;
             break;
         }
 
@@ -565,8 +646,12 @@ uint32_t CPU::tick()
 
     /* Interrupt Handling */
     // check if interrupts should be enabled or disabled
-    if (ei_delay == 1) { --ei_delay; }
-    else if (ei_delay == 0) { IME = true; --ei_delay; }
+    if (EI_delay == 1) {
+        --EI_delay;
+    } else if (EI_delay == 0) {
+        IME = true;
+        --EI_delay;
+    }
 
     // check if an interrupt was requested and if the specific interrupt is enabled
     assert(not (IF & 0xE0) and "Interrupt flag set for invalid bits");
@@ -581,7 +666,7 @@ uint32_t CPU::tick()
         IF ^= 0x1 << interrupt_bit;
         IME = false;
 
-        // transfer control to the interrupt handler
+        // transfer control to the interrupt handler (https://gbdev.io/pandocs/Interrupts.html#interrupt-handling)
         m_cycle();
         // push PC to stack.
         PUSH(PC);

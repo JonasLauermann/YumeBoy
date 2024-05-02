@@ -25,7 +25,7 @@ class YumeBoy {
     YumeBoy(const std::string& filepath) {
         cpu_ = std::make_unique<CPU>(*this);
         cartridge_ = CartridgeFactory::Create(filepath);
-        ppu_ = std::make_unique<PPU>();
+        ppu_ = std::make_unique<PPU>(*this);
         audio_ = std::make_unique<MemorySTUB>("Audio", 0xFF10, 0xFF26);
         hram_ = std::make_unique<Memory>(0xFF80, 0xFFFE);
         wram_ = std::make_unique<Memory>(0xc000, 0xDFFF);
@@ -58,24 +58,20 @@ class YumeBoy {
         else if (0xFEA0 <= addr and addr <= 0xFEFF)
             // Not Usable (Nintendo says use of this area is prohibited)
             return 0xFF;
-        else if (0xFF00 <= addr and addr <= 0xFF7F)
-            if (0xFF01 <= addr and addr <= 0xFF02)
-                // TODO Serial transfer
-                return link_cable_->read_memory(addr);
-            else if (addr == 0xFF0F)
-                return cpu_->read_IF();
-            else if (0xFF10 <= addr and addr <= 0xFF26)
-                return audio_->read_memory(addr);
-            else if (0xFF40 <= addr and addr <= 0xFF4B)
-                return ppu_->read_lcd_register(addr);
-            else if (addr == 0xFF50)
-                return cartridge_->boot_room_enabled();
-            else if (0xFF51 <= addr)
-                // Unused
-                return 0xFF;
-            else
-                // TODO: I/O Registers
-                throw std::runtime_error("I/O Registers not implemented");
+        else if (0xFF01 <= addr and addr <= 0xFF02)
+            // TODO Serial transfer
+            return link_cable_->read_memory(addr);
+        else if (addr == 0xFF0F)
+            return cpu_->read_IF();
+        else if (0xFF10 <= addr and addr <= 0xFF26)
+            return audio_->read_memory(addr);
+        else if (0xFF40 <= addr and addr <= 0xFF4B)
+            return ppu_->read_lcd_register(addr);
+        else if (addr == 0xFF50)
+            return cartridge_->boot_room_enabled();
+        else if (0xFF51 <= addr and addr <= 0xFF7F)
+            // Unused
+            return 0xFF;
         else if (0xFF80 <= addr and addr <= 0xFFFE)
             return hram_->read_memory(addr);
         else if (addr == 0xFFFF)
@@ -103,31 +99,38 @@ class YumeBoy {
         else if (0xFEA0 <= addr and addr <= 0xFEFF)
             // Not Usable (Nintendo says use of this area is prohibited)
             return;
-        else if (0xFF00 <= addr and addr <= 0xFF7F) {
-            if (0xFF01 <= addr and addr <= 0xFF02)
-                // TODO Serial transfer
-                link_cable_->write_memory(addr, value);
-            else if (addr == 0xFF0F)
-                cpu_->write_IF(value);
-            else if (0xFF10 <= addr and addr <= 0xFF26)
-                audio_->write_memory(addr, value);
-            else if (0xFF40 <= addr and addr <= 0xFF4B)
-                ppu_->write_lcd_register(addr, value);
-            else if (addr == 0xFF50)
-                cartridge_->boot_room_enabled(value);
-            else if (0xFF51 <= addr)
-                // Unused
-                return;
-            else
-                // TODO: I/O Register
-                throw std::runtime_error("I/O Register not implemented");
-        }
+        else if (0xFF01 <= addr and addr <= 0xFF02)
+            // TODO Serial transfer
+            link_cable_->write_memory(addr, value);
+        else if (addr == 0xFF0F)
+            cpu_->write_IF(value);
+        else if (0xFF10 <= addr and addr <= 0xFF26)
+            audio_->write_memory(addr, value);
+        else if (0xFF40 <= addr and addr <= 0xFF4B)
+            ppu_->write_lcd_register(addr, value);
+        else if (addr == 0xFF50)
+            cartridge_->boot_room_enabled(value);
+        else if (0xFF51 <= addr and addr <= 0xFF7F)
+            // Unused
+            return;
         else if (0xFF80 <= addr and addr <= 0xFFFE)
             hram_->write_memory(addr, value);
         else if (addr == 0xFFFF)
             cpu_->write_IE(value);
         else
             throw std::runtime_error("Memory address out of range.");
+    }
+
+    enum INTERRUPT : uint8_t {
+        V_BLANK_INTERRUPT =     1,
+        STAT_INTERRUPT =        1 << 1,
+        TIMER_INTERRUPT =       1 << 2,
+        SERIAL_INTERRUPT =      1 << 3,
+        JOYPAD_INTERRUPT =      1 << 4
+    };
+
+    void request_interrupt(INTERRUPT intrrupt) {
+        cpu_->write_IF(cpu_->read_IF() | intrrupt);
     }
 
 };

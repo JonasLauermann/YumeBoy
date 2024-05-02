@@ -19,9 +19,11 @@
 #define DISPLAY_WIDTH 160
 #define DISPLAY_HEIGHT 144
 
+class YumeBoy;
 
 /** The Pixel-Processing Unit. It handles anything related to drawing the frames of games. */
 class PPU {
+    YumeBoy &yume_boy_;         // Reference to Emulator
     uint64_t tick_time_;        // the amount of time the ppu has run for this tick (in T-cycles / 2^22 Hz)
     uint64_t scanline_time_;    // the amount of time the ppu has run for this scanline (in T-cycles / 2^22 Hz)
 
@@ -195,7 +197,8 @@ class PPU {
 
 
 public:
-    PPU() : scanline_time_(0), lcd("YumeBoy", DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4), mode_(V_Blank), pixel_fifo_stopped(false), fifo_pushed_pixels(0), fetcher(*this) {
+    PPU() = delete;
+    PPU(YumeBoy &yume_boy) : yume_boy_(yume_boy), scanline_time_(0), lcd("YumeBoy", DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4), mode_(V_Blank), pixel_fifo_stopped(false), fifo_pushed_pixels(0), fetcher(*this) {
         vram_.resize(VRAM_END - VRAM_BEGIN + 1, 0);
         oam_ram_.resize(OAM_RAM_END - OAM_RAM_BEGIN + 1, 0);
         

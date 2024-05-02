@@ -84,6 +84,13 @@ class CPU {
         Bit 1 – LCD STAT Interrupt Enable (1=Enable, 0=Disable)
         Bit 0 – Vertical Blank Interrupt Enable (1=Enable, 0=Disable) */
     uint8_t IE = 0x0;
+    
+
+    /* Used to realize the delayed effect of the *EI* cpu instruction.
+     *    1 := EI was just executed, do nothing and decrement by one.
+     *    0 := EI was executed in the previous fetch-execute cycle, enable interrupts and decrement by one.
+     *   -1 := Do nothing. */
+    int8_t EI_delay = -1;
 
     public:
     uint8_t read_IF() { return IF; }

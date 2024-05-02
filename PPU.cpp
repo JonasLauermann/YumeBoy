@@ -1,5 +1,7 @@
 #include "PPU.hpp"
 
+#include "YumeBoy.hpp"
+
 
 void PPU::LCD::push_pixel(Color c) {
     assert(buffer_it != pixel_buffer.end());
@@ -306,6 +308,7 @@ void PPU::h_blank_tick()
         /* Move to next scanline and switch mode */
         if (++LY == 144) {
             set_mode(V_Blank);
+            yume_boy_.request_interrupt(YumeBoy::V_BLANK_INTERRUPT);
             lcd.update_screen();
         } else {
             assert(LY < 144);
