@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+
 class YumeBoy;
 
 class CPU {
@@ -74,7 +75,7 @@ class CPU {
         Bit 2 – Timer Interrupt Requested (1=Requested)
         Bit 1 – LCD STAT Interrupt Requested (1=Requested)
         Bit 0 – Vertical Blank Interrupt Requested (1=Requested) */
-    uint8_t IF = 0x0;
+    uint8_t IF_ = 0x0;
 
     /* 0xFFFF – IE – Interrupt Enable (R/W)
        All 8 bits of this register are (R/W), but only the 5 lower ones are used by the interrupt handler.
@@ -83,7 +84,7 @@ class CPU {
         Bit 2 – Timer Interrupt Enable (1=Enable, 0=Disable)
         Bit 1 – LCD STAT Interrupt Enable (1=Enable, 0=Disable)
         Bit 0 – Vertical Blank Interrupt Enable (1=Enable, 0=Disable) */
-    uint8_t IE = 0x0;
+    uint8_t IE_ = 0x0;
     
 
     /* Used to realize the delayed effect of the *EI* cpu instruction.
@@ -93,14 +94,84 @@ class CPU {
     int8_t EI_delay = -1;
 
     public:
-    uint8_t read_IF() { return IF; }
-    uint8_t read_IE() { return IE; }
-    void write_IF(uint8_t value) { IF = value; }
-    void write_IE(uint8_t value) { IE = value; }
+    class TimerDivider {
+        friend CPU;
+        CPU &cpu_;
+
+        uint16_t system_counter = 0x0;  // incremented every t-cycle, upper 8-bit make up DIV register
+
+        /* 0xFF07 - TAC - Timer control
+        Bit 2   - Enable: Controls whether TIMA is incremented. Note that DIV is always counting, regardless of this bit.
+        Bit 1-0 - Clock select: Controls the frequency at which TIMA is incremented.
+        (https://gbdev.io/pandocs/Timer_and_Divider_Registers.html#ff07--tac-timer-control) */
+        uint8_t TAC_ = 0x0;
+
+        bool old_tac_bit = false;   // Implements the "delay" in the DIV & TAC falling edge detector.
+
+        /* 0xFF05 - TIMA: Timer counter
+        This timer is incremented at the clock frequency specified by the TAC register (0xFF07). When the value overflows (exceeds 0xFF) it is reset to the value specified in TMA (0xFF06) and an interrupt is requested. */
+        uint8_t TIMA_ = 0x0;
+
+        bool old_tima_bit = false;  // Implements the "delay" in the TIMA overflow falling edge detector.
+        bool tima_overflow = false;  // Is set to true to indicate that TIMA has overflown. Used to request a timer interrupt.
+        bool tima_written = false;  // Is `true` if the TIMA was written to
+
+        /* 0xFF06 - TMA: Timer modulo
+        When TIMA overflows, it is reset to the value in this register and an interrupt is requested.
+        If a TMA write is executed on the same M-cycle as the content of TMA is transferred to TIMA due to a timer overflow, the old value is transferred to TIMA. */
+        uint8_t TMA_ = 0x0;
+
+        protected:
+        TimerDivider() = delete;
+        TimerDivider(CPU &cpu) : cpu_(cpu) { }
+
+        /* Advance the Timer state by a single tick.
+           `new_m_cycle` should be set to true to signal to the Timer that it should request a Interrupt if TIMA has overflown (see https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#timer-overflow-behavior) */
+        void tick(bool new_m_cycle);
+
+        public:
+
+        /* 0xFF04 — DIV: Divider register
+        This register is incremented at a rate of 16384Hz. Writing any value to this register resets it to $00.
+        Additionally, this register is reset when executing the stop instruction, and only begins ticking again once stop mode ends.
+        The value of DIV is the actual bits of the system internal counter, not a mirror, not a register that increases with the system internal counter: The actual bits of the counter mapped to memory. */
+        uint8_t DIV() { return system_counter >> 8; }
+        /* DIV can be written, but its value resets to 0 no matter what the value written is. In fact, the whole system internal counter is set to 0. */
+        void DIV(uint8_t) { system_counter = 0; }
+        
+        uint8_t TAC() { return TAC_; }
+        /* Only the lower 3 bits are (R/W) */
+        void TAC(uint8_t value) { TAC_ = value & 0b111; }
+        
+        uint8_t TIMA() { return TIMA_; }
+        void TIMA(uint8_t value) {
+            TIMA_ = value;
+            tima_written = true;
+        }
+        
+        uint8_t TMA() { return TMA_; }
+        void TMA(uint8_t value) { TMA_ = value; }
+
+    } timer_divider;
+
+    uint8_t IF() { return IF_; }
+    uint8_t IE() { return IE_; }
+    void IF(uint8_t value) { IF_ = value; }
+    void IE(uint8_t value) { IE_ = value; }
+
+    
 
     private:
-    /* one cpu cycle takes four T-cycles (2^22 Hz) */
-    void m_cycle(uint8_t cycles = 1) { time_ += (cycles * 4); }
+    /* one cpu cycle takes four T-cycles (2^22 Hz).
+       Because of the TimerDivider updated in this method, it should be called *after* the operation performed in this M-Cycle was executed. (e.g., when a new bytes is fetched from ROM, m_cycle() should be called after `read_memory(PC++)` was called) */
+    void m_cycle(uint8_t cycles = 1) {
+        uint32_t t_cycles = cycles * 4;
+        time_ += t_cycles;
+
+        // increament timer clock per T-cycle
+        for ( ; t_cycles > 0; --t_cycles )
+            timer_divider.tick((t_cycles % 4) == 0);
+    }
 
     uint8_t fetch_byte();
 
@@ -125,7 +196,7 @@ class CPU {
 
     public:
     CPU() = delete;
-    CPU(YumeBoy &yume_boy) : yume_boy_(yume_boy) { }
+    CPU(YumeBoy &yume_boy) : yume_boy_(yume_boy), timer_divider(*this) { }
 
     /* Runs the CPU until it reaches the next "stable" state. Returns the amount of time spent. */
     uint32_t tick();

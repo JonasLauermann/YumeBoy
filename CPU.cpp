@@ -6,37 +6,37 @@
 
 uint8_t CPU::fetch_byte()
 {
-    m_cycle();
     return yume_boy_.read_memory(PC++);
+    m_cycle();
 }
 
 void CPU::LD_register(uint8_t &target, uint16_t addr)
 {
-    m_cycle();
     target = yume_boy_.read_memory(addr);
+    m_cycle();
 }
 
 void CPU::LD_memory(uint16_t addr, uint8_t value)
 {
-    m_cycle();
     yume_boy_.write_memory(addr, value);
+    m_cycle();
 }
 
 void CPU::PUSH(uint16_t value)
 {
     m_cycle();  // internal cycle
-    m_cycle();
     yume_boy_.write_memory(--SP, value >> 8);
     m_cycle();
     yume_boy_.write_memory(--SP, value & 0xFF);
+    m_cycle();
 }
 
 uint16_t CPU::POP()
 {
-    m_cycle();
     uint8_t lower = yume_boy_.read_memory(SP++);
     m_cycle();
     uint8_t higher = yume_boy_.read_memory(SP++);
+    m_cycle();
     return lower | (higher << 8);
 }
 
@@ -68,8 +68,8 @@ void CPU::CP_register(uint8_t const &target)
 
 void CPU::CP_memory(uint16_t addr)
 {
-    m_cycle();
     uint8_t mem_value = yume_boy_.read_memory(addr);
+    m_cycle();
     z(A == mem_value);
     n(true);
     h((A & 0xF) < (mem_value & 0xF));
@@ -91,6 +91,38 @@ uint32_t CPU::tick()
     /* set time of current tick to 0. */
     time_ = 0;
 
+    /* Interrupt Handling */
+    // check if interrupts should be enabled or disabled
+    if (EI_delay == 1) {
+        --EI_delay;
+    } else if (EI_delay == 0) {
+        IME = true;
+        --EI_delay;
+    }
+
+    // check if an interrupt was requested and if the specific interrupt is enabled
+    assert(not (IF_ & 0xE0) and "Interrupt flag set for invalid bits");
+    uint8_t req_intrrupt = IE_ & IF_;
+    if (IME and req_intrrupt) {
+        // if multiple interrupts were requested at the same time, handle lower bit interrupts first
+        uint8_t interrupt_bit = 0;
+        while (not (req_intrrupt & 0x1)) { req_intrrupt = req_intrrupt >> 1; interrupt_bit++; }
+
+        // reset interrupt bit and disable interrupt handling
+        assert(IF_ & 0x1 << interrupt_bit);
+        IF_ ^= 0x1 << interrupt_bit;
+        IME = false;
+
+        // transfer control to the interrupt handler (https://gbdev.io/pandocs/Interrupts.html#interrupt-handling)
+        // push PC to stack.
+        PUSH(PC);
+        m_cycle();
+        // set PC to handler address.
+        PC = 0x40 + (0x8 * interrupt_bit);
+        m_cycle();
+    }
+
+    /* Execute next Instruction */
     // fetch program counter
     uint8_t opcode = fetch_byte();
     switch (opcode) {
@@ -103,8 +135,8 @@ uint32_t CPU::tick()
         }
 
         case 0x03: { // increment the contents of register pair BC by 1.
-            m_cycle();
             BC(BC() + 1);
+            m_cycle();
             break;
         }
 
@@ -130,8 +162,8 @@ uint32_t CPU::tick()
         }
 
         case 0x0B: { // decrement the contents of register BC by 1.
-            m_cycle();
             BC(BC() - 1);
+            m_cycle();
             break;
         }
 
@@ -162,8 +194,8 @@ uint32_t CPU::tick()
         }
 
         case 0x13: { // increment the contents of register pair DE by 1.
-            m_cycle();
             DE(DE() + 1);
+            m_cycle();
             break;
         }
 
@@ -187,8 +219,8 @@ uint32_t CPU::tick()
 
         case 0x18: { // jump s8 steps from the current address in the program counter (PC).
             int8_t offset = fetch_byte();
-            m_cycle();
             PC += offset;
+            m_cycle();
             break;
         }
 
@@ -222,8 +254,8 @@ uint32_t CPU::tick()
         case 0x20: { // if zero flag is false, perform relative jump using the next byte as a signed offset
             int8_t offset = fetch_byte();
             if (z()) break;
-            m_cycle();
             PC += offset;
+            m_cycle();
             break;
         }
 
@@ -239,8 +271,8 @@ uint32_t CPU::tick()
         }
 
         case 0x23: { // increment the contents of register pair HL by 1.
-            m_cycle();
             HL(HL() + 1);
+            m_cycle();
             break;
         }
 
@@ -255,15 +287,15 @@ uint32_t CPU::tick()
         case 0x28: { // if the z flag is true, jump s8 steps from the current address stored in the program counter (PC).
             int8_t offset = fetch_byte();
             if (not z()) break;
-            m_cycle();
             PC += offset;
+            m_cycle();
             break;
         }
 
         case 0x2A: { // load the contents of memory specified by register pair HL into register A, and simultaneously increment the contents of HL.
             A = yume_boy_.read_memory(HL());
-            m_cycle();
             HL(HL() + 1);
+            m_cycle();
             break;
         }
 
@@ -279,8 +311,8 @@ uint32_t CPU::tick()
         }
 
         case 0x33: { // increment the contents of register pair SP by 1.
-            m_cycle();
             ++SP;
+            m_cycle();
             break;
         }
 
@@ -406,8 +438,8 @@ uint32_t CPU::tick()
         }
 
         case 0x86: { // add the contents of memory specified by register pair HL to the contents of register A, and store the results in register A.
-            m_cycle();
             auto mem = yume_boy_.read_memory(HL());
+            m_cycle();
             n(false);
             h((A & 0xF) + (mem & 0xF) > 0xF);
             c(A + mem > 0xFF);
@@ -644,36 +676,62 @@ uint32_t CPU::tick()
         }
     }
 
-    /* Interrupt Handling */
-    // check if interrupts should be enabled or disabled
-    if (EI_delay == 1) {
-        --EI_delay;
-    } else if (EI_delay == 0) {
-        IME = true;
-        --EI_delay;
-    }
-
-    // check if an interrupt was requested and if the specific interrupt is enabled
-    assert(not (IF & 0xE0) and "Interrupt flag set for invalid bits");
-    uint8_t req_intrrupt = IE & IF;
-    if (IME and req_intrrupt) {
-        // if multiple interrupts were requested at the same time, handle lower bit interrupts first
-        uint8_t interrupt_bit = 0;
-        while (not (req_intrrupt & 0x1)) { req_intrrupt = req_intrrupt >> 1; interrupt_bit++; }
-
-        // reset interrupt bit and disable interrupt handling
-        assert(IF & 0x1 << interrupt_bit);
-        IF ^= 0x1 << interrupt_bit;
-        IME = false;
-
-        // transfer control to the interrupt handler (https://gbdev.io/pandocs/Interrupts.html#interrupt-handling)
-        m_cycle();
-        // push PC to stack.
-        PUSH(PC);
-        // set PC to handler address.
-        m_cycle();
-        PC = 0x40 + (0x8 * interrupt_bit);
-    }
-
     return time_;
+}
+
+//=========================================================================
+//  TimerDivider
+//=========================================================================
+
+
+void CPU::TimerDivider::tick(bool new_m_cycle)
+{
+    // based on https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#relation-between-timer-and-divider-register
+    // increment system_counter
+    ++system_counter;
+
+    // request interrupt if a m_cycle has passed and the TIMA register has overflown
+    if (new_m_cycle and tima_overflow) {
+        // request interrupt
+        cpu_.yume_boy_.request_interrupt(YumeBoy::TIMER_INTERRUPT);
+
+        // set overflown value of TIMA to TMA
+        TIMA_ = TMA_;
+
+        tima_overflow = false;
+    }
+
+    // determine bit selected by TAC multiplexer
+    uint8_t selected_bit = 3;
+    switch (TAC_ & 0b11) {
+        case 0:
+            selected_bit += 2;
+        case 3:
+            selected_bit += 2;
+        case 2:
+            selected_bit += 2;
+        case 1:
+            break;
+        default:
+            std::unreachable();
+    }
+    bool tac_bit = (system_counter & (1 << selected_bit)) and (TAC_ & 0b100);
+
+    // DIV & TAC falling edge detector
+    bool tmp_tac_bit = old_tac_bit;
+    old_tac_bit = tac_bit;
+    if (tac_bit or not tmp_tac_bit) return;
+
+    // when falling edge is detected => increment TIMA
+    ++TIMA_;
+
+    // writes to TIMA must block the falling edge detector (https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#write_edge)
+    if (not tima_written) {
+        // TIMA overflow falling edge detector
+        bool tima_high_bit = TIMA_ & 1 << 7;
+        tima_overflow = tima_high_bit or not old_tima_bit;
+        old_tima_bit = tima_high_bit;
+    } else {
+        tima_overflow = false;
+    }
 }

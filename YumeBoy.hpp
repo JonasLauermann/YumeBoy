@@ -61,8 +61,16 @@ class YumeBoy {
         else if (0xFF01 <= addr and addr <= 0xFF02)
             // TODO Serial transfer
             return link_cable_->read_memory(addr);
+        else if (addr == 0xFF04)
+            return cpu_->timer_divider.DIV();
+        else if (addr == 0xFF05)
+            return cpu_->timer_divider.TIMA();
+        else if (addr == 0xFF06)
+            return cpu_->timer_divider.TMA();
+        else if (addr == 0xFF07)
+            return cpu_->timer_divider.TAC();
         else if (addr == 0xFF0F)
-            return cpu_->read_IF();
+            return cpu_->IF();
         else if (0xFF10 <= addr and addr <= 0xFF26)
             return audio_->read_memory(addr);
         else if (0xFF40 <= addr and addr <= 0xFF4B)
@@ -75,7 +83,7 @@ class YumeBoy {
         else if (0xFF80 <= addr and addr <= 0xFFFE)
             return hram_->read_memory(addr);
         else if (addr == 0xFFFF)
-            return cpu_->read_IE();
+            return cpu_->IE();
         else
             throw std::runtime_error("Memory address out of range.");
     }
@@ -102,8 +110,16 @@ class YumeBoy {
         else if (0xFF01 <= addr and addr <= 0xFF02)
             // TODO Serial transfer
             link_cable_->write_memory(addr, value);
+        else if (addr == 0xFF04)
+            cpu_->timer_divider.DIV(value);
+        else if (addr == 0xFF05)
+            cpu_->timer_divider.TIMA(value);
+        else if (addr == 0xFF06)
+            cpu_->timer_divider.TMA(value);
+        else if (addr == 0xFF07)
+            cpu_->timer_divider.TAC(value);
         else if (addr == 0xFF0F)
-            cpu_->write_IF(value);
+            cpu_->IF(value);
         else if (0xFF10 <= addr and addr <= 0xFF26)
             audio_->write_memory(addr, value);
         else if (0xFF40 <= addr and addr <= 0xFF4B)
@@ -116,7 +132,7 @@ class YumeBoy {
         else if (0xFF80 <= addr and addr <= 0xFFFE)
             hram_->write_memory(addr, value);
         else if (addr == 0xFFFF)
-            cpu_->write_IE(value);
+            cpu_->IE(value);
         else
             throw std::runtime_error("Memory address out of range.");
     }
@@ -130,7 +146,7 @@ class YumeBoy {
     };
 
     void request_interrupt(INTERRUPT intrrupt) {
-        cpu_->write_IF(cpu_->read_IF() | intrrupt);
+        cpu_->IF(cpu_->IF() | intrrupt);
     }
 
 };
