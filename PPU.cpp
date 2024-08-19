@@ -354,7 +354,7 @@ void PPU::oam_scan_tick()
     }
 
     if (oam_pointer == OAM_RAM_END + 1) {
-        assert(scanline_time_ == 80);
+        assert(scanline_time_ == 40);
         set_mode(Pixel_Transfer);
         oam_pointer = OAM_RAM_BEGIN;
     }

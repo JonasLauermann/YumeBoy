@@ -126,10 +126,10 @@ class PPU {
     } lcd;
 
 
-    /* one ppu cycle takes two T-cycles (2^22 Hz) */
+    /* one ppu cycle (called "dot") takes one T-cycles (2^22 Hz) */
     void dot(uint8_t cycles = 1) {
-        tick_time_ += (cycles * 2);
-        scanline_time_ += (cycles * 2);
+        tick_time_ += cycles;
+        scanline_time_ += cycles;
     }
 
     enum PPU_Mode { H_Blank = 0, V_Blank = 1, OAM_Scan = 2, Pixel_Transfer = 3 } mode_;  // current Mode of the PPU
