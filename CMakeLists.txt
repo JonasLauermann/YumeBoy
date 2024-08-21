@@ -10,5 +10,6 @@ add_executable(YumeBoy main.cpp
         CPU.cpp
         Cartridge.cpp
         MemoryStub.hpp
-        PPU.cpp)
+        PPU.cpp
+        Joypad.cpp)
 target_link_libraries(YumeBoy SDL2::SDL2 SDL2::SDL2main)

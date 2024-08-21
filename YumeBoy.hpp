@@ -5,6 +5,7 @@
 #include "Memory.hpp"
 #include "MemoryStub.hpp"
 #include "PPU.hpp"
+#include "Joypad.hpp"
 
 #include <memory>
 
@@ -20,6 +21,7 @@ class YumeBoy {
     std::unique_ptr<Memory> hram_;
     std::unique_ptr<Memory> wram_;
     std::unique_ptr<MemorySTUB> link_cable_;
+    std::unique_ptr<Joypad> joypad_;
 
     public:
     YumeBoy(const std::string& filepath) {
@@ -30,13 +32,16 @@ class YumeBoy {
         hram_ = std::make_unique<Memory>(0xFF80, 0xFFFE);
         wram_ = std::make_unique<Memory>(0xc000, 0xDFFF);
         link_cable_ = std::make_unique<MemorySTUB>("Serial Data Transfer (Link Cable)", 0xFF01, 0xFF02);
+        joypad_ = std::make_unique<Joypad>(*this);
     }
 
     void tick() {
-        if (time_budget <= 0)
+        if (time_budget <= 0) {
             time_budget += cpu_->tick();
-        else
+            joypad_->update_joypad_state();
+        } else {
             time_budget -= ppu_->tick();
+        }
     }
 
     uint8_t read_memory(uint16_t addr) {
@@ -58,6 +63,8 @@ class YumeBoy {
         else if (0xFEA0 <= addr and addr <= 0xFEFF)
             // Not Usable (Nintendo says use of this area is prohibited)
             return 0xFF;
+        else if (0xFF00 == addr)
+            return joypad_->P1();
         else if (0xFF01 <= addr and addr <= 0xFF02)
             // TODO Serial transfer
             return link_cable_->read_memory(addr);
@@ -107,6 +114,8 @@ class YumeBoy {
         else if (0xFEA0 <= addr and addr <= 0xFEFF)
             // Not Usable (Nintendo says use of this area is prohibited)
             return;
+        else if (0xFF00 == addr)
+            joypad_->P1(value);
         else if (0xFF01 <= addr and addr <= 0xFF02)
             // TODO Serial transfer
             link_cable_->write_memory(addr, value);
