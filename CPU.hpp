@@ -183,16 +183,47 @@ class CPU {
     void PUSH(uint16_t value);
     /* Pop 16-Bit value from stack */
     uint16_t POP();
+    /* Increment the contents of register reg by 1. */
+    void INC(uint8_t &reg);
+    /* Decrement the contents of register reg by 1. */
+    void DEC(uint8_t &reg);
+    /* Add the contents of register pair source to the contents of register pair HL, and store the results in register pair HL. */
+    void ADD_HL(uint16_t const &source);
+    /* Add the contents of register source to the contents of register A, and store the results in register A. */
+    void ADD(uint8_t const &source);
+    /* Add the contents of register `source` and the CY flag to the contents of register A, and store the results in register A. */
+    void ADC(uint8_t const &source);
     /* subtract the contents of register source from the contents of register A, and store the results in register A. */
     void SUB(uint8_t const &source);
     /* Subtract the contents of register source and the carry flag from the contents of register A, and store the results in register A. */
     void SBC(uint8_t const &source);
+    /* Bitwise AND between the value in source and A. */
+    void AND(uint8_t const &source);
+    /* Bitwise XOR between the value in source and A. */
+    void XOR(uint8_t const &source);
+    /* Bitwise OR between the value in source and A. */
+    void OR(uint8_t const &source);
+    /* Call address vec. This is a shorter and faster equivalent to CALL for suitable values of vec. */
+    void RST(uint8_t vector);
     /* Compare the contents of register source and the contents of register A by calculating A - source, and set the Z flag if they are equal. */
     void CP_register(uint8_t const &target);
     /* compare the contents of memory specified by addr and the contents of register A by calculating A - (addr), and set the Z flag if they are equal. */
     void CP_memory(uint16_t addr);
     /* Rotate the contents of register `target` to the left. */
     void RL(uint8_t &target);
+    /* Rotate the contents of register `target` to the left. The contents of bit 7 are placed in both the CY flag and bit 0 of register `target`. */
+    void RLC(uint8_t &target);
+    /* Shift the contents of register `target` to the left.  */
+    void SLA(uint8_t &target);
+    /* Test `bit` in register `source`, set the zero flag if bit not set.  */
+    void BIT(uint8_t bit, uint8_t &source);
+    /* Set `bit` in register `source` to 0. */
+    void RES(uint8_t bit, uint8_t &source);
+    /* Set `bit` in register `source` to 1. */
+    void SET(uint8_t bit, uint8_t &source);
+
+    /* handles 16-bit opcodes */
+    void cb_opcodes();
 
     public:
     CPU() = delete;
