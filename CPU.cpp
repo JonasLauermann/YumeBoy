@@ -1331,7 +1331,9 @@ uint32_t CPU::tick()
             break;
 
         case 0x01: { // load the 2 bytes of immediate data into register pair BC.
-            BC(uint16_t(fetch_byte() | fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            BC(uint16_t((upper << 8) | lower));
             break;
         }
 
@@ -1406,7 +1408,9 @@ uint32_t CPU::tick()
         }
 
         case 0x11: { // load the 2 bytes of immediate data into register pair DE.
-            DE(uint16_t(fetch_byte() | fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            DE(uint16_t((upper << 8) | lower));
             break;
         }
 
@@ -1484,7 +1488,9 @@ uint32_t CPU::tick()
         }
 
         case 0x21: { // load next two byte into register HL
-            HL(uint16_t(fetch_byte() | fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            HL(uint16_t((upper << 8) | lower));
             break;
         }
 
@@ -1541,7 +1547,9 @@ uint32_t CPU::tick()
         }
 
         case 0x31: { // load next two byte into register SP
-            SP = uint16_t(fetch_byte() | fetch_byte() << 8);
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            SP = uint16_t((upper << 8) | lower);
             break;
         }
 
@@ -2109,20 +2117,26 @@ uint32_t CPU::tick()
         }
 
         case 0xC2: { // JP NZ a16 - Load the 16-bit immediate operand a16 into the program counter (PC) if the Z flag is 0. a16 specifies the address of the subsequently executed instruction.
-            PC = uint16_t(fetch_byte() | (fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            PC = uint16_t((upper << 8) | lower);
             if (z()) break;
             m_cycle();  // internal
             break;
         }
 
         case 0xC3: { // JP a16 - Load the 16-bit immediate operand a16 into the program counter (PC). a16 specifies the address of the subsequently executed instruction.
-            PC = uint16_t(fetch_byte() | (fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            PC = uint16_t((upper << 8) | lower);
             m_cycle();  // internal
             break;
         }
 
         case 0xC4: { // CALL NZ a16 - If the Z flag is 0, the program counter PC value corresponding to the memory location of the instruction following the CALL instruction is pushed to the 2 bytes following the memory byte specified by the stack pointer SP. The 16-bit immediate operand a16 is then loaded into PC.
-            auto target_addr = uint16_t(fetch_byte() | (fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            auto target_addr = uint16_t((upper << 8) | lower);
             if (z()) { break; }
             PUSH(PC);
             PC = target_addr;
@@ -2159,7 +2173,9 @@ uint32_t CPU::tick()
         }
 
         case 0xCA: { // JP Z - If the Z flag is true, Load the 16-bit immediate operand a16 into the program counter PC.
-            auto addr = uint16_t(fetch_byte() | (fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            auto addr = uint16_t((upper << 8) | lower);
             if (not z()) break;
             PC = addr;
             m_cycle();  // internal branch dicision (?)
@@ -2175,7 +2191,9 @@ uint32_t CPU::tick()
          * following the CALL instruction is pushed to the 2 bytes following the memory byte specified by the stack
          * pointer SP. The 16-bit immediate operand a16 is then loaded into PC. */
         case 0xCC: {
-            auto target_addr = uint16_t(fetch_byte() | (fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            auto target_addr = uint16_t((upper << 8) | lower);
             if (not z()) { break; }
             PUSH(PC);
             PC = target_addr;
@@ -2186,7 +2204,9 @@ uint32_t CPU::tick()
          * instruction to the 2 bytes following the byte specified by the current stack pointer SP. Then load the 16-bit
          * immediate operand a16 into PC. */
         case 0xCD: {
-            auto target_addr = uint16_t(fetch_byte() | (fetch_byte() << 8));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            auto target_addr = uint16_t((upper << 8) | lower);
             PUSH(PC);
             PC = target_addr;
             break;
@@ -2265,7 +2285,9 @@ uint32_t CPU::tick()
         }
 
         case 0xEA: { // store the contents of register A in the internal RAM or register specified by the 16-bit immediate operand a16.
-            yume_boy_.write_memory(uint16_t(fetch_byte() | (fetch_byte() << 8)), A);
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            yume_boy_.write_memory(uint16_t((upper << 8) | lower), A);
             m_cycle();
             break;
         }
@@ -2307,7 +2329,9 @@ uint32_t CPU::tick()
         }
 
         case 0xFA: { // load into register A the contents of the internal RAM or register specified by the 16-bit immediate operand a16.
-            A = yume_boy_.read_memory(uint16_t(fetch_byte() | (fetch_byte() << 8)));
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            A = yume_boy_.read_memory(uint16_t((upper << 8) | lower));
             m_cycle();
             break;
         }
