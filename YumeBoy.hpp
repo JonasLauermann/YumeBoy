@@ -24,7 +24,7 @@ class YumeBoy {
     std::unique_ptr<Joypad> joypad_;
 
     public:
-    YumeBoy(const std::string& filepath) {
+    explicit YumeBoy(const std::string& filepath) {
         cpu_ = std::make_unique<CPU>(*this);
         cartridge_ = CartridgeFactory::Create(filepath);
         ppu_ = std::make_unique<PPU>(*this);
@@ -69,13 +69,13 @@ class YumeBoy {
             // TODO Serial transfer
             return link_cable_->read_memory(addr);
         else if (addr == 0xFF04)
-            return cpu_->timer_divider.DIV();
+            return cpu_->timer_divider()->DIV();
         else if (addr == 0xFF05)
-            return cpu_->timer_divider.TIMA();
+            return cpu_->timer_divider()->TIMA();
         else if (addr == 0xFF06)
-            return cpu_->timer_divider.TMA();
+            return cpu_->timer_divider()->TMA();
         else if (addr == 0xFF07)
-            return cpu_->timer_divider.TAC();
+            return cpu_->timer_divider()->TAC();
         else if (addr == 0xFF0F)
             return cpu_->IF();
         else if (0xFF10 <= addr and addr <= 0xFF26)
@@ -120,13 +120,13 @@ class YumeBoy {
             // TODO Serial transfer
             link_cable_->write_memory(addr, value);
         else if (addr == 0xFF04)
-            cpu_->timer_divider.DIV(value);
+            cpu_->timer_divider()->DIV(value);
         else if (addr == 0xFF05)
-            cpu_->timer_divider.TIMA(value);
+            cpu_->timer_divider()->TIMA(value);
         else if (addr == 0xFF06)
-            cpu_->timer_divider.TMA(value);
+            cpu_->timer_divider()->TMA(value);
         else if (addr == 0xFF07)
-            cpu_->timer_divider.TAC(value);
+            cpu_->timer_divider()->TAC(value);
         else if (addr == 0xFF0F)
             cpu_->IF(value);
         else if (0xFF10 <= addr and addr <= 0xFF26)
@@ -146,7 +146,7 @@ class YumeBoy {
             throw std::runtime_error("Memory address out of range.");
     }
 
-    enum INTERRUPT : uint8_t {
+    enum class INTERRUPT : uint8_t {
         V_BLANK_INTERRUPT =     1,
         STAT_INTERRUPT =        1 << 1,
         TIMER_INTERRUPT =       1 << 2,
@@ -155,7 +155,7 @@ class YumeBoy {
     };
 
     void request_interrupt(INTERRUPT intrrupt) {
-        cpu_->IF(cpu_->IF() | intrrupt);
+        cpu_->IF(cpu_->IF() | static_cast<uint8_t>(intrrupt));
     }
 
 };

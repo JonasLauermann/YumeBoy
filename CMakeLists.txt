@@ -10,8 +10,11 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-Wall -Wextra -Wunreachable-code)
 endif()
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# # Find SDL2
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+
+# Find SDL2
 find_package(SDL2 REQUIRED)
 
 add_executable(YumeBoy main.cpp

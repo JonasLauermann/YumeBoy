@@ -3,10 +3,21 @@
 #include <iostream>
 #include "YumeBoy.hpp"
 
+void CPU::m_cycle(uint8_t cycles) 
+{
+    uint32_t t_cycles = cycles * 4;
+    time_ += t_cycles;
+
+    // increament timer clock per T-cycle
+    for ( ; t_cycles > 0; --t_cycles ) {
+        timer_divider()->tick((t_cycles % 4) == 0);
+    }
+}
 
 uint8_t CPU::fetch_byte()
 {
-    uint8_t byte = yume_boy_.read_memory(PC++);
+    uint8_t byte = yume_boy_.read_memory(PC);
+    ++PC;
     m_cycle();
     return byte;
 }
@@ -26,19 +37,23 @@ void CPU::LD_memory(uint16_t addr, uint8_t value)
 void CPU::PUSH(uint16_t value)
 {
     m_cycle();  // internal cycle
-    yume_boy_.write_memory(--SP, value >> 8);
+    --SP;
+    yume_boy_.write_memory(SP, value >> 8);
     m_cycle();
-    yume_boy_.write_memory(--SP, value & 0xFF);
+    --SP;
+    yume_boy_.write_memory(SP, value & 0xFF);
     m_cycle();
 }
 
 uint16_t CPU::POP()
 {
-    uint8_t lower = yume_boy_.read_memory(SP++);
+    uint8_t lower = yume_boy_.read_memory(SP);
+    ++SP;
     m_cycle();
-    uint8_t higher = yume_boy_.read_memory(SP++);
+    uint8_t higher = yume_boy_.read_memory(SP);
+    ++SP;
     m_cycle();
-    return lower | (higher << 8);
+    return uint16_t(lower | (higher << 8u));
 }
 
 void CPU::INC(uint8_t &reg)
@@ -77,9 +92,9 @@ void CPU::ADD(uint8_t const &source)
 
 void CPU::ADC(uint8_t const &source)
 {
-    h((A & 0xF) + (source & 0xF) + c() > 0xF);
-    c(A + c() > 0xFF - source);
-    A += source + c();
+    h((A & 0xF) + (source & 0xF) + uint8_t(c()) > 0xF);
+    c(A + uint8_t(c()) > 0xFF - source);
+    A += source + uint8_t(c());
     z(A == 0);
     n(true);
 }
@@ -95,11 +110,11 @@ void CPU::SUB(uint8_t const &source)
 
 void CPU::SBC(uint8_t const &source)
 {
-    z(A == (source + c()));
+    z(A == (source + uint8_t(c())));
     n(true);
-    h((A & 0xF) < ((source + c()) & 0xF));
-    c(A < (source + c()));
-    A -= source + c();
+    h((A & 0xF) < ((source + uint8_t(c())) & 0xF));
+    c(A < (source + uint8_t(c())));
+    A -= source + uint8_t(c());
 }
 
 void CPU::AND(uint8_t const &source)
@@ -159,7 +174,7 @@ void CPU::RL(uint8_t &target)
 {
     uint8_t old_carry = c();
     c(target & 1 << 7);
-    target = (target << 1) | old_carry;
+    target = uint8_t((target << 1) | old_carry);
     z(target == 0);
     n(false);
     h(false);
@@ -168,7 +183,7 @@ void CPU::RL(uint8_t &target)
 void CPU::RLC(uint8_t &target)
 {
     c(target & 1 << 7);
-    target = (target << 1) | uint8_t(c());
+    target = uint8_t((target << 1) | uint8_t(c()));
     z(target == 0);
     n(false);
     h(false);
@@ -183,20 +198,21 @@ void CPU::SLA(uint8_t &target)
     h(false);
 }
 
-void CPU::BIT(uint8_t bit, uint8_t &source)
+void CPU::BIT(uint8_t bit, const uint8_t &source)
 {
     z(not(source & 1 << bit));
     n(false);
     h(true);
 }
 
-void CPU::RES(uint8_t bit, uint8_t &source)
+void CPU::RES(uint8_t bit, uint8_t &source) const
 {
-    uint8_t mask = ~(1 << bit);
+    assert(bit < 8);
+    uint8_t mask = ~uint8_t(1 << bit);
     source &= mask;
 }
 
-void CPU::SET(uint8_t bit, uint8_t &source)
+void CPU::SET(uint8_t bit, uint8_t &source) const
 {
     source |= 1 << bit;
 }
@@ -1289,8 +1305,7 @@ uint32_t CPU::tick()
 
     // check if an interrupt was requested and if the specific interrupt is enabled
     assert(not (IF_ & 0xE0) and "Interrupt flag set for invalid bits");
-    uint8_t req_intrrupt = IE_ & IF_;
-    if (IME and req_intrrupt) {
+    if (uint8_t req_intrrupt = IE_ & IF_; IME and req_intrrupt) {
         // if multiple interrupts were requested at the same time, handle lower bit interrupts first
         uint8_t interrupt_bit = 0;
         while (not (req_intrrupt & 0x1)) { req_intrrupt = req_intrrupt >> 1; interrupt_bit++; }
@@ -1311,13 +1326,12 @@ uint32_t CPU::tick()
 
     /* Execute next Instruction */
     // fetch program counter
-    uint8_t opcode = fetch_byte();
-    switch (opcode) {
+    switch (uint8_t opcode = fetch_byte()) {
         case 0x00:  // NOP
             break;
 
         case 0x01: { // load the 2 bytes of immediate data into register pair BC.
-            BC(fetch_byte() | fetch_byte() << 8);
+            BC(uint16_t(fetch_byte() | fetch_byte() << 8));
             break;
         }
 
@@ -1392,7 +1406,7 @@ uint32_t CPU::tick()
         }
 
         case 0x11: { // load the 2 bytes of immediate data into register pair DE.
-            DE(fetch_byte() | fetch_byte() << 8);
+            DE(uint16_t(fetch_byte() | fetch_byte() << 8));
             break;
         }
 
@@ -1470,7 +1484,7 @@ uint32_t CPU::tick()
         }
 
         case 0x21: { // load next two byte into register HL
-            HL(fetch_byte() | fetch_byte() << 8);
+            HL(uint16_t(fetch_byte() | fetch_byte() << 8));
             break;
         }
 
@@ -1527,7 +1541,7 @@ uint32_t CPU::tick()
         }
 
         case 0x31: { // load next two byte into register SP
-            SP = fetch_byte() | fetch_byte() << 8;
+            SP = uint16_t(fetch_byte() | fetch_byte() << 8);
             break;
         }
 
@@ -1573,6 +1587,14 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x38: { // if the CY flag is 1, jump s8 steps from the current address stored in the program counter (PC).
+            int8_t offset = fetch_byte();
+            if (not c()) break;
+            PC += offset;
+            m_cycle();
+            break;
+        }
+
         case 0x3C: { // increment the contents of register A by 1.
             h((A & 0xF) == 0xF);
             ++A;
@@ -1594,8 +1616,7 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x40: { // load the contents of register B into register B.
-            B = B;
+        case 0x40: { // load the contents of register B into register B. (does nothing)
             break;
         }
 
@@ -1639,8 +1660,7 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x49: { // load the contents of register C into register C.
-            C = C;
+        case 0x49: { // load the contents of register C into register C. (does nothing)
             break;
         }
 
@@ -1684,8 +1704,7 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x52: { // load the contents of register D into register D.
-            D = D;
+        case 0x52: { // load the contents of register D into register D. (does nothing)
             break;
         }
 
@@ -1729,8 +1748,7 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x5B: { // load the contents of register E into register E.
-            E = E;
+        case 0x5B: { // load the contents of register E into register E. (does nothing)
             break;
         }
 
@@ -1774,8 +1792,7 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x64: { // load the contents of register H into register H.
-            H = H;
+        case 0x64: { // load the contents of register H into register H. (does nothing)
             break;
         }
 
@@ -1819,8 +1836,7 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x6D: { // load the contents of register L into register L.
-            L = L;
+        case 0x6D: { // load the contents of register L into register L. (does nothing)
             break;
         }
 
@@ -1879,8 +1895,7 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x7F: { // load the contents of register A into register A.
-            A = A;
+        case 0x7F: { // load the contents of register A into register A. (does nothing)
             break;
         }
 
@@ -2060,6 +2075,11 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xB7: { // A OR A
+            OR(A);
+            break;
+        }
+
         case 0xB9: { // compare the contents of register C and the contents of register A by calculating A - C, and set the Z flag if they are equal.
             CP_register(C);
             break;
@@ -2089,15 +2109,23 @@ uint32_t CPU::tick()
         }
 
         case 0xC2: { // JP NZ a16 - Load the 16-bit immediate operand a16 into the program counter (PC) if the Z flag is 0. a16 specifies the address of the subsequently executed instruction.
-            PC = (fetch_byte() | fetch_byte() << 8);
+            PC = uint16_t(fetch_byte() | (fetch_byte() << 8));
             if (z()) break;
             m_cycle();  // internal
             break;
         }
 
         case 0xC3: { // JP a16 - Load the 16-bit immediate operand a16 into the program counter (PC). a16 specifies the address of the subsequently executed instruction.
-            PC = (fetch_byte() | fetch_byte() << 8);
+            PC = uint16_t(fetch_byte() | (fetch_byte() << 8));
             m_cycle();  // internal
+            break;
+        }
+
+        case 0xC4: { // CALL NZ a16 - If the Z flag is 0, the program counter PC value corresponding to the memory location of the instruction following the CALL instruction is pushed to the 2 bytes following the memory byte specified by the stack pointer SP. The 16-bit immediate operand a16 is then loaded into PC.
+            auto target_addr = uint16_t(fetch_byte() | (fetch_byte() << 8));
+            if (z()) { break; }
+            PUSH(PC);
+            PC = target_addr;
             break;
         }
 
@@ -2131,7 +2159,7 @@ uint32_t CPU::tick()
         }
 
         case 0xCA: { // JP Z - If the Z flag is true, Load the 16-bit immediate operand a16 into the program counter PC.
-            uint16_t addr = fetch_byte() | (fetch_byte() << 8);
+            auto addr = uint16_t(fetch_byte() | (fetch_byte() << 8));
             if (not z()) break;
             PC = addr;
             m_cycle();  // internal branch dicision (?)
@@ -2147,7 +2175,7 @@ uint32_t CPU::tick()
          * following the CALL instruction is pushed to the 2 bytes following the memory byte specified by the stack
          * pointer SP. The 16-bit immediate operand a16 is then loaded into PC. */
         case 0xCC: {
-            uint16_t target_addr = (fetch_byte() | fetch_byte() << 8);
+            auto target_addr = uint16_t(fetch_byte() | (fetch_byte() << 8));
             if (not z()) { break; }
             PUSH(PC);
             PC = target_addr;
@@ -2158,7 +2186,7 @@ uint32_t CPU::tick()
          * instruction to the 2 bytes following the byte specified by the current stack pointer SP. Then load the 16-bit
          * immediate operand a16 into PC. */
         case 0xCD: {
-            uint16_t target_addr = (fetch_byte() | fetch_byte() << 8);
+            auto target_addr = uint16_t(fetch_byte() | (fetch_byte() << 8));
             PUSH(PC);
             PC = target_addr;
             break;
@@ -2237,7 +2265,7 @@ uint32_t CPU::tick()
         }
 
         case 0xEA: { // store the contents of register A in the internal RAM or register specified by the 16-bit immediate operand a16.
-            yume_boy_.write_memory(fetch_byte() | fetch_byte() << 8, A);
+            yume_boy_.write_memory(uint16_t(fetch_byte() | (fetch_byte() << 8)), A);
             m_cycle();
             break;
         }
@@ -2279,7 +2307,7 @@ uint32_t CPU::tick()
         }
 
         case 0xFA: { // load into register A the contents of the internal RAM or register specified by the 16-bit immediate operand a16.
-            A = yume_boy_.read_memory(fetch_byte() | fetch_byte() << 8);
+            A = yume_boy_.read_memory(uint16_t(fetch_byte() | (fetch_byte() << 8)));
             m_cycle();
             break;
         }
@@ -2326,7 +2354,7 @@ void CPU::TimerDivider::tick(bool new_m_cycle)
     // request interrupt if a m_cycle has passed and the TIMA register has overflown
     if (new_m_cycle and tima_overflow) {
         // request interrupt
-        cpu_.yume_boy_.request_interrupt(YumeBoy::TIMER_INTERRUPT);
+        cpu_.yume_boy_.request_interrupt(YumeBoy::INTERRUPT::TIMER_INTERRUPT);
 
         // set overflown value of TIMA to TMA
         TIMA_ = TMA_;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 
 class YumeBoy;
@@ -40,10 +41,10 @@ class CPU {
     void c(bool b) { F = b ? F | (1 << 4) : F & ~(1 << 4); }
 
     // 16-bit registers helper methods
-    uint16_t AF() const { return A << 8 | F; }
-    uint16_t BC() const { return B << 8 | C; }
-    uint16_t DE() const { return D << 8 | E; }
-    uint16_t HL() const { return H << 8 | L; }
+    uint16_t AF() const { return uint16_t((A << 8) | F); }
+    uint16_t BC() const { return uint16_t((B << 8) | C); }
+    uint16_t DE() const { return uint16_t((D << 8) | E); }
+    uint16_t HL() const { return uint16_t((H << 8) | L); }
 
     void AF(uint16_t x) {
         A = x >> 8;
@@ -62,7 +63,6 @@ class CPU {
         L = x & 0xFF;
     }
 
-    /* TODO interrupts */
     // Interrupts
     /* IME is a flag internal to the CPU that controls whether any interrupt handlers are called, regardless of the
      * contents of IE. IME cannot be read in any way, and is modified by these instructions/events only. */
@@ -93,7 +93,6 @@ class CPU {
      *   -1 := Do nothing. */
     int8_t EI_delay = -1;
 
-    public:
     class TimerDivider {
         friend CPU;
         CPU &cpu_;
@@ -123,7 +122,7 @@ class CPU {
 
         protected:
         TimerDivider() = delete;
-        TimerDivider(CPU &cpu) : cpu_(cpu) { }
+        explicit TimerDivider(CPU &cpu) : cpu_(cpu) { }
 
         /* Advance the Timer state by a single tick.
            `new_m_cycle` should be set to true to signal to the Timer that it should request a Interrupt if TIMA has overflown (see https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#timer-overflow-behavior) */
@@ -135,43 +134,38 @@ class CPU {
         This register is incremented at a rate of 16384Hz. Writing any value to this register resets it to $00.
         Additionally, this register is reset when executing the stop instruction, and only begins ticking again once stop mode ends.
         The value of DIV is the actual bits of the system internal counter, not a mirror, not a register that increases with the system internal counter: The actual bits of the counter mapped to memory. */
-        uint8_t DIV() { return system_counter >> 8; }
+        uint8_t DIV() const { return system_counter >> 8; }
         /* DIV can be written, but its value resets to 0 no matter what the value written is. In fact, the whole system internal counter is set to 0. */
         void DIV(uint8_t) { system_counter = 0; }
         
-        uint8_t TAC() { return TAC_; }
+        uint8_t TAC() const { return TAC_; }
         /* Only the lower 3 bits are (R/W) */
         void TAC(uint8_t value) { TAC_ = value & 0b111; }
         
-        uint8_t TIMA() { return TIMA_; }
+        uint8_t TIMA() const { return TIMA_; }
         void TIMA(uint8_t value) {
             TIMA_ = value;
             tima_written = true;
         }
         
-        uint8_t TMA() { return TMA_; }
+        uint8_t TMA() const { return TMA_; }
         void TMA(uint8_t value) { TMA_ = value; }
 
-    } timer_divider;
+    };
+    TimerDivider timer_divider_;
 
-    uint8_t IF() { return IF_; }
-    uint8_t IE() { return IE_; }
+    public:
+    uint8_t IF() const { return IF_; }
+    uint8_t IE() const { return IE_; }
     void IF(uint8_t value) { IF_ = value; }
     void IE(uint8_t value) { IE_ = value; }
 
-    
+    TimerDivider *timer_divider() { return &timer_divider_; }
 
     private:
     /* one cpu cycle takes four T-cycles (2^22 Hz).
        Because of the TimerDivider updated in this method, it should be called *after* the operation performed in this M-Cycle was executed. (e.g., when a new bytes is fetched from ROM, m_cycle() should be called after `read_memory(PC++)` was called) */
-    void m_cycle(uint8_t cycles = 1) {
-        uint32_t t_cycles = cycles * 4;
-        time_ += t_cycles;
-
-        // increament timer clock per T-cycle
-        for ( ; t_cycles > 0; --t_cycles )
-            timer_divider.tick((t_cycles % 4) == 0);
-    }
+    void m_cycle(uint8_t cycles = 1);
 
     uint8_t fetch_byte();
 
@@ -216,18 +210,18 @@ class CPU {
     /* Shift the contents of register `target` to the left.  */
     void SLA(uint8_t &target);
     /* Test `bit` in register `source`, set the zero flag if bit not set.  */
-    void BIT(uint8_t bit, uint8_t &source);
+    void BIT(uint8_t bit, const uint8_t &source);
     /* Set `bit` in register `source` to 0. */
-    void RES(uint8_t bit, uint8_t &source);
+    void RES(uint8_t bit, uint8_t &source) const;
     /* Set `bit` in register `source` to 1. */
-    void SET(uint8_t bit, uint8_t &source);
+    void SET(uint8_t bit, uint8_t &source) const;
 
     /* handles 16-bit opcodes */
     void cb_opcodes();
 
     public:
     CPU() = delete;
-    CPU(YumeBoy &yume_boy) : yume_boy_(yume_boy), timer_divider(*this) { }
+    explicit CPU(YumeBoy &yume_boy) : yume_boy_(yume_boy), timer_divider_(*this) { }
 
     /* Runs the CPU until it reaches the next "stable" state. Returns the amount of time spent. */
     uint32_t tick();

@@ -23,6 +23,7 @@ protected:
     void ram_bytes(uint32_t addr, uint8_t value);
 
 public:
+    virtual ~Cartridge() = default;
     Cartridge(std::vector<uint8_t> rom_bytes, std::vector<uint8_t> ram_bytes, uint8_t carrtidge_type, uint8_t rom_size, uint8_t ram_size) : rom_bytes_(std::move(rom_bytes)), ram_bytes_(std::move(ram_bytes)), CARTRIDGE_TYPE(carrtidge_type), ROM_SIZE(rom_size), RAM_SIZE(ram_size) {}
 
     virtual uint8_t read_rom(uint16_t addr) = 0;
@@ -31,14 +32,14 @@ public:
     virtual uint8_t read_ram(uint16_t addr) = 0;
     virtual void write_ram(uint16_t addr, uint8_t value) = 0;
 
-    uint8_t boot_room_enabled() { return boot_rom_enabled; }
+    uint8_t boot_room_enabled() const { return boot_rom_enabled; }
     void boot_room_enabled(uint8_t value) { boot_rom_enabled = value; }
 };
 
 class ROM_ONLY : public Cartridge
 {
 public:
-    ROM_ONLY(std::vector<uint8_t> rom_bytes) : Cartridge(std::move(rom_bytes), {}, 0x00, 0x00, 0x00) {}
+    explicit ROM_ONLY(std::vector<uint8_t> rom_bytes) : Cartridge(std::move(rom_bytes), {}, 0x00, 0x00, 0x00) {}
 
     uint8_t read_rom(uint16_t addr) override;
 
@@ -55,7 +56,7 @@ class MBC1 : public Cartridge
     uint8_t RAM_bank_number = 0x00;   // 2-bit register, range: 0x00-0x03 (can be used for additional ROM banks instead of RAM -- https://gbdev.io/pandocs/MBC1.html#40005fff--ram-bank-number--or--upper-bits-of-rom-bank-number-write-only)
     bool banking_mode_select = false; // if true, uses the 2-bit register for ROM banking
 
-    uint32_t translate_ram_addr(uint16_t addr)
+    uint32_t translate_ram_addr(uint16_t addr) const
     {
         assert(0xA000 <= addr and addr <= 0xBFFF);
 

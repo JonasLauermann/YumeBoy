@@ -4,20 +4,21 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <memory>
 #include <queue>
 #include <stdexcept>
 #include <vector>
 #include <SDL.h>
 
-#define VRAM_BEGIN 0x8000
-#define VRAM_END 0x9FFF
-#define OAM_RAM_BEGIN 0xFE00
-#define OAM_RAM_END 0xFE9F
-#define LCD_REG_BEGIN 0xFF40
-#define LCD_REG_END 0xFF4B
+constexpr uint16_t VRAM_BEGIN = 0x8000;
+constexpr uint16_t VRAM_END = 0x9FFF;
+constexpr uint16_t OAM_RAM_BEGIN = 0xFE00;
+constexpr uint16_t OAM_RAM_END = 0xFE9F;
+constexpr uint16_t LCD_REG_BEGIN = 0xFF40;
+constexpr uint16_t LCD_REG_END = 0xFF4B;
 
-#define DISPLAY_WIDTH 160
-#define DISPLAY_HEIGHT 144
+constexpr uint8_t DISPLAY_WIDTH = 160;
+constexpr uint8_t DISPLAY_HEIGHT = 144;
 
 class YumeBoy;
 
@@ -25,7 +26,7 @@ class YumeBoy;
 class PPU {
     YumeBoy &yume_boy_;         // Reference to Emulator
     uint32_t tick_time_;        // the amount of time the ppu has run for this tick (in T-cycles / 2^22 Hz)
-    uint32_t scanline_time_;    // the amount of time the ppu has run for this scanline (in T-cycles / 2^22 Hz)
+    uint32_t scanline_time_ = 0;    // the amount of time the ppu has run for this scanline (in T-cycles / 2^22 Hz)
 
     std::vector<uint8_t> vram_;
     std::vector<uint8_t> oam_ram_;
@@ -81,41 +82,37 @@ class PPU {
     /** 0xFF4B — WX: Window X position plus 7. (WX=7-166) */
     uint8_t WX = 0x0;
 
-    // /* LCD
-    //  * Implemented as a vector of pixels, each pixel is a number that represents one of the system colors.
-    //  * 0 - White
-    //  * 1 - Light Gray
-    //  * 2 - Dark Gray
-    //  * 3 - Black
-    //  * 4 - Off */
-    // std::vector<uint8_t> lcd;
-
     class LCD {
         using pixel_buffer_t = std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT * 4>;
 
-        SDL_Window *window;
-        SDL_Renderer *renderer;
-        SDL_Texture *pixel_matrix_texture;
+        struct sdl_deleter
+        {
+            void operator()(SDL_Window *p) const { SDL_DestroyWindow(p); }
+            void operator()(SDL_Renderer *p) const { SDL_DestroyRenderer(p); }
+            void operator()(SDL_Texture *p) const { SDL_DestroyTexture(p); }
+        };
+
+        std::unique_ptr<SDL_Window, sdl_deleter> window;
+        std::unique_ptr<SDL_Renderer, sdl_deleter> renderer;
+        std::unique_ptr<SDL_Texture, sdl_deleter> pixel_matrix_texture;
         pixel_buffer_t pixel_buffer;
         pixel_buffer_t::iterator buffer_it;
 
-        bool power_;
+        bool power_ = false;
 
         public:
-        enum Color : uint8_t {
+        enum class Color : uint8_t {
             WHITE = 0,
             LIGHT_GRAY = 1,
             DARK_GRAY = 2,
             BLACK = 3
         };
 
-        LCD([[maybe_unused]] const char *title, [[maybe_unused]] int width, [[maybe_unused]] int height) : buffer_it(pixel_buffer.begin()), power_(false) {
-            window = SDL_CreateWindow("YumeBoy", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4, 0);
-            renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-            pixel_matrix_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        LCD([[maybe_unused]] const char *title, [[maybe_unused]] int width, [[maybe_unused]] int height) : buffer_it(pixel_buffer.begin()) {
+            window = std::unique_ptr<SDL_Window, sdl_deleter>(SDL_CreateWindow("YumeBoy", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4, 0), sdl_deleter());
+            renderer = std::unique_ptr<SDL_Renderer, sdl_deleter>(SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED), sdl_deleter());
+            pixel_matrix_texture =  std::unique_ptr<SDL_Texture, sdl_deleter>(SDL_CreateTexture(renderer.get(), SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, DISPLAY_WIDTH, DISPLAY_HEIGHT), sdl_deleter());
         }
-
-        ~LCD() { SDL_DestroyWindow(window); }
 
         void power(bool on) { power_ = on; }
 
@@ -123,7 +120,8 @@ class PPU {
 
         void update_screen();
 
-    } lcd;
+    };
+    LCD lcd = LCD("YumeBoy", DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4);
 
 
     /* one ppu cycle (called "dot") takes one T-cycles (2^22 Hz) */
@@ -132,7 +130,8 @@ class PPU {
         scanline_time_ += cycles;
     }
 
-    enum PPU_Mode : uint8_t { H_Blank = 0, V_Blank = 1, OAM_Scan = 2, Pixel_Transfer = 3 } mode_;  // current Mode of the PPU
+    enum PPU_Mode : uint8_t { H_Blank = 0, V_Blank = 1, OAM_Scan = 2, Pixel_Transfer = 3 };
+    PPU_Mode mode_ = V_Blank;  // current Mode of the PPU
 
     void set_mode(PPU_Mode mode);
 
@@ -159,14 +158,14 @@ class PPU {
     std::queue<Pixel> BG_FIFO;
     std::queue<Pixel> Sprite_FIFO;
 
-    bool pixel_fifo_stopped;
-    uint8_t fifo_pushed_pixels; // current x position of the pixel fifo
+    bool pixel_fifo_stopped = false;
+    uint8_t fifo_pushed_pixels = 0; // current x position of the pixel fifo
 
     class PixelFetcher {
-        uint8_t fetcher_x;   // fetcher internal coordinates
-        uint8_t step;
-        bool fetch_sprite_;
-        bool fetch_window;
+        uint8_t fetcher_x = 0;   // fetcher internal coordinates
+        uint8_t step = 0;
+        bool fetch_sprite_ = false;
+        bool fetch_window = false;
         PPU &p;
 
         OAM_entry oam_entry;
@@ -176,7 +175,7 @@ class PPU {
         uint8_t high_data;
 
         public:
-        PixelFetcher(PPU &ppu) : fetcher_x(0), step(0), fetch_sprite_(false), fetch_window(false), p(ppu) { }
+        explicit PixelFetcher(PPU &ppu) : p(ppu) { }
 
         void bg_tick();
 
@@ -193,12 +192,13 @@ class PPU {
 
         void reset();
 
-    } fetcher;
+    };
+    PixelFetcher fetcher;
 
 
 public:
     PPU() = delete;
-    PPU(YumeBoy &yume_boy) : yume_boy_(yume_boy), scanline_time_(0), lcd("YumeBoy", DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4), mode_(V_Blank), pixel_fifo_stopped(false), fifo_pushed_pixels(0), fetcher(*this) {
+    explicit PPU(YumeBoy &yume_boy) : yume_boy_(yume_boy), fetcher(*this) {
         vram_.resize(VRAM_END - VRAM_BEGIN + 1, 0);
         oam_ram_.resize(OAM_RAM_END - OAM_RAM_BEGIN + 1, 0);
         
