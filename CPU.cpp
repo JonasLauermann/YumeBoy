@@ -6,8 +6,9 @@
 
 uint8_t CPU::fetch_byte()
 {
-    return yume_boy_.read_memory(PC++);
+    uint8_t byte = yume_boy_.read_memory(PC++);
     m_cycle();
+    return byte;
 }
 
 void CPU::LD_register(uint8_t &target, uint16_t addr)
@@ -167,7 +168,7 @@ void CPU::RL(uint8_t &target)
 void CPU::RLC(uint8_t &target)
 {
     c(target & 1 << 7);
-    target = (target << 1) | c();
+    target = (target << 1) | uint8_t(c());
     z(target == 0);
     n(false);
     h(false);

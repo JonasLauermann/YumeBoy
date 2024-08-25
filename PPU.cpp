@@ -424,6 +424,8 @@ void PPU::pixel_transfer_tick()
             c = (OBP1 >> (2 * px.color)) & 0b11;
             break;
         }
+        default:
+            std::unreachable();
     }
 
     assert(c <= 3);

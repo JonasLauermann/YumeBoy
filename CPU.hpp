@@ -7,7 +7,7 @@ class YumeBoy;
 
 class CPU {
     YumeBoy &yume_boy_; // Reference to Emulator
-    uint64_t time_;     // the amount of time the cpu has been running for (in T-cycles / 2^22 Hz)
+    uint32_t time_;     // the amount of time the cpu has been running for (in T-cycles / 2^22 Hz)
 
     // Registers
     uint8_t A = 0x0;

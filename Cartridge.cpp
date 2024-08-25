@@ -22,7 +22,7 @@ constexpr std::array<uint8_t, 256> boot_rom = {
         0x0E, 0xEC, 0xCC, 0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E, 0xFF, 0xFF, 0x3C, 0xE0, 0x50
 };
 
-uint8_t Cartridge::read_rom(uint16_t addr)
+uint8_t Cartridge::rom_bytes(uint32_t addr)
 {
     assert(addr <= rom_bytes_.size());
     if (boot_rom_enabled == 0 and addr <= 0xFF)
@@ -30,24 +30,24 @@ uint8_t Cartridge::read_rom(uint16_t addr)
     return rom_bytes_[addr];
 }
 
-uint8_t Cartridge::read_ram(uint16_t addr)
+uint8_t Cartridge::ram_bytes(uint32_t addr)
 {
     assert(addr <= ram_bytes_.size());
     return ram_bytes_[addr];
 }
 
-void Cartridge::write_ram(uint16_t addr, uint8_t value)
+void Cartridge::ram_bytes(uint32_t addr, uint8_t value)
 {
     assert(addr <= ram_bytes_.size());
     ram_bytes_[addr] = value; 
 }
 
-/*==========================================================================================================================*/
-/* ROM ONLY                                                                                                                 */
-/*==========================================================================================================================*/
+/*==============================================================================================================*/
+/* ROM ONLY                                                                                                     */
+/*==============================================================================================================*/
 
 uint8_t ROM_ONLY::read_rom(uint16_t addr)
 {
     assert(addr <= 0x7FFF);
-    return Cartridge::read_rom(addr);
+    return Cartridge::rom_bytes(addr);
 }

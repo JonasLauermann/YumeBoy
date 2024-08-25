@@ -24,8 +24,8 @@ class YumeBoy;
 /** The Pixel-Processing Unit. It handles anything related to drawing the frames of games. */
 class PPU {
     YumeBoy &yume_boy_;         // Reference to Emulator
-    uint64_t tick_time_;        // the amount of time the ppu has run for this tick (in T-cycles / 2^22 Hz)
-    uint64_t scanline_time_;    // the amount of time the ppu has run for this scanline (in T-cycles / 2^22 Hz)
+    uint32_t tick_time_;        // the amount of time the ppu has run for this tick (in T-cycles / 2^22 Hz)
+    uint32_t scanline_time_;    // the amount of time the ppu has run for this scanline (in T-cycles / 2^22 Hz)
 
     std::vector<uint8_t> vram_;
     std::vector<uint8_t> oam_ram_;
@@ -109,7 +109,7 @@ class PPU {
             BLACK = 3
         };
 
-        LCD(const char *title, int width, int height) : buffer_it(pixel_buffer.begin()), power_(false) {
+        LCD([[maybe_unused]] const char *title, [[maybe_unused]] int width, [[maybe_unused]] int height) : buffer_it(pixel_buffer.begin()), power_(false) {
             window = SDL_CreateWindow("YumeBoy", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4, 0);
             renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
             pixel_matrix_texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, DISPLAY_WIDTH, DISPLAY_HEIGHT);
@@ -132,7 +132,7 @@ class PPU {
         scanline_time_ += cycles;
     }
 
-    enum PPU_Mode { H_Blank = 0, V_Blank = 1, OAM_Scan = 2, Pixel_Transfer = 3 } mode_;  // current Mode of the PPU
+    enum PPU_Mode : uint8_t { H_Blank = 0, V_Blank = 1, OAM_Scan = 2, Pixel_Transfer = 3 } mode_;  // current Mode of the PPU
 
     void set_mode(PPU_Mode mode);
 
