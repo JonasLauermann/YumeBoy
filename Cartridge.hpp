@@ -103,7 +103,7 @@ public:
         if (addr <= 0x1FFF)
             RAM_enabled = value;
         else if (0x2000 <= addr and addr <= 0x3FFF)
-            ROM_bank_number = value & 0b11111;
+            ROM_bank_number = std::max(uint8_t(value & 0b11111), uint8_t(1));  // ROM Banking Number: 0x00 is treated as 0x01
         else if (0x4000 <= addr and addr <= 0x5FFF)
             RAM_bank_number = value & 0b11;
         else if (0x6000 <= addr and addr <= 0x7FFF)

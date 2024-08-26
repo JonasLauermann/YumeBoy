@@ -5,7 +5,8 @@
 
 class Memory {
     std::vector<uint8_t> memory_;
-    const uint16_t begin_memory_range_, end_memory_range_;   // both begin and end are included in range
+    const uint16_t begin_memory_range_;
+    const uint16_t end_memory_range_;   // both begin and end are included in range
 
     public:
     Memory(uint16_t begin_memory_range, uint16_t end_memory_range)

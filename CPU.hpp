@@ -205,10 +205,14 @@ class CPU {
     void CP_memory(uint16_t addr);
     /* Rotate the contents of register `target` to the left. */
     void RL(uint8_t &target);
+    /* Rotate the contents of register `target` to the right. */
+    void RR(uint8_t &target);
     /* Rotate the contents of register `target` to the left. The contents of bit 7 are placed in both the CY flag and bit 0 of register `target`. */
     void RLC(uint8_t &target);
     /* Shift the contents of register `target` to the left.  */
     void SLA(uint8_t &target);
+    /* Shift the contents of register `target` to the right.  */
+    void SRL(uint8_t &target);
     /* Test `bit` in register `source`, set the zero flag if bit not set.  */
     void BIT(uint8_t bit, const uint8_t &source);
     /* Set `bit` in register `source` to 0. */

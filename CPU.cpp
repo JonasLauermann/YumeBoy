@@ -87,7 +87,7 @@ void CPU::ADD(uint8_t const &source)
     c(A > 0xFF - source);
     A += source;
     z(A == 0);
-    n(true);
+    n(false);
 }
 
 void CPU::ADC(uint8_t const &source)
@@ -96,7 +96,7 @@ void CPU::ADC(uint8_t const &source)
     c(A + uint8_t(c()) > 0xFF - source);
     A += source + uint8_t(c());
     z(A == 0);
-    n(true);
+    n(false);
 }
 
 void CPU::SUB(uint8_t const &source)
@@ -180,6 +180,16 @@ void CPU::RL(uint8_t &target)
     h(false);
 }
 
+void CPU::RR(uint8_t &target)
+{
+    uint8_t old_carry = c();
+    c(target & 1);
+    target = uint8_t((target >> 1) | (old_carry << 7));
+    z(target == 0);
+    n(false);
+    h(false);
+}
+
 void CPU::RLC(uint8_t &target)
 {
     c(target & 1 << 7);
@@ -193,6 +203,15 @@ void CPU::SLA(uint8_t &target)
 {
     c(target & 1 << 7);
     target <<= 1;
+    z(target == 0);
+    n(false);
+    h(false);
+}
+
+void CPU::SRL(uint8_t &target)
+{
+    c(target & 1);
+    target >>= 1;
     z(target == 0);
     n(false);
     h(false);
@@ -227,8 +246,96 @@ void CPU::cb_opcodes()
             break;
         }
 
+        case 0x18: { // rotate the contents of register B to the right.
+            RR(B);
+            break;
+        }
+
+        case 0x19: { // rotate the contents of register C to the right.
+            RR(C);
+            break;
+        }
+
+        case 0x1A: { // rotate the contents of register D to the right.
+            RR(D);
+            break;
+        }
+
+        case 0x1B: { // rotate the contents of register E to the right.
+            RR(E);
+            break;
+        }
+
+        case 0x1C: { // rotate the contents of register H to the right.
+            RR(H);
+            break;
+        }
+
+        case 0x1D: { // rotate the contents of register L to the right.
+            RR(L);
+            break;
+        }
+
+        case 0x1E: { // rotate the contents of memory specified by HL to the right.
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            RR(byte);
+            yume_boy_.read_memory(HL());
+            m_cycle();
+            break;
+        }
+
+        case 0x1F: { // rotate the contents of register A to the right.
+            RR(A);
+            break;
+        }
+
         case 0x27: { // Shift the contents of register A to the left.
             SLA(A);
+            break;
+        }
+
+        case 0x38: { // Shift the contents of register B to the right.
+            SRL(B);
+            break;
+        }
+
+        case 0x39: { // Shift the contents of register C to the right.
+            SRL(C);
+            break;
+        }
+
+        case 0x3A: { // Shift the contents of register D to the right.
+            SRL(D);
+            break;
+        }
+
+        case 0x3B: { // Shift the contents of register E to the right.
+            SRL(E);
+            break;
+        }
+
+        case 0x3C: { // Shift the contents of register H to the right.
+            SRL(H);
+            break;
+        }
+
+        case 0x3D: { // Shift the contents of register L to the right.
+            SRL(L);
+            break;
+        }
+
+        case 0x3E: { // Shift the contents of memory specified by HL to the right.
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            SRL(byte);
+            yume_boy_.write_memory(HL(), byte);
+            m_cycle();
+            break;
+        }
+
+        case 0x3F: { // Shift the contents of register A to the right.
+            SRL(A);
             break;
         }
 
@@ -1344,18 +1451,12 @@ uint32_t CPU::tick()
         }
 
         case 0x04: { // increment the contents of register B by 1.
-            h((B & 0xF) == 0xF);
-            ++B;
-            z(B == 0);
-            n(false);
+            INC(B);
             break;
         }
 
         case 0x05: { // decrement the contents of register B by 1.
-            h((B & 0xF) == 0);
-            --B;
-            z(B == 0);
-            n(true);
+            DEC(B);
             break;
         }
 
@@ -1387,18 +1488,12 @@ uint32_t CPU::tick()
         }
 
         case 0x0C: { // increment the contents of register C by 1.
-            h((C & 0xF) == 0xF);
-            ++C;
-            z(C == 0);
-            n(false);
+            INC(C);
             break;
         }
 
         case 0x0D: { // decrement the contents of register C by 1.
-            h((C & 0xF) == 0);
-            --C;
-            z(C == 0);
-            n(true);
+            DEC(C);
             break;
         }
 
@@ -1425,11 +1520,13 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x14: { // increment the contents of register D by 1.
+            INC(D);
+            break;
+        }
+
         case 0x15: { // decrement the contents of register D by 1.
-            h((D & 0xF) == 0);
-            --D;
-            z(D == 0);
-            n(true);
+            DEC(D);
             break;
         }
 
@@ -1443,7 +1540,7 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x18: { // jump s8 steps from the current address in the program counter (PC).
+        case 0x18: { // JR s8 - jump s8 steps from the current address in the program counter (PC).
             int8_t offset = fetch_byte();
             PC += offset;
             m_cycle();
@@ -1451,11 +1548,7 @@ uint32_t CPU::tick()
         }
 
         case 0x19: { // add the contents of register pair DE to the contents of register pair HL, and store the results in register pair HL.
-            m_cycle(); // internal cycle
-            n(false);
-            h((HL() & 0xFFF) + (DE() & 0xFFF) > 0xFFF);
-            c(HL() + DE() > 0xFFFF);
-            HL(HL() + DE());
+            ADD_HL(DE());
             break;
         }
 
@@ -1479,7 +1572,13 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x20: { // if zero flag is false, perform relative jump using the next byte as a signed offset
+        case 0x1F: { // RRA
+            RR(A);
+            z(false);   // unlike RR, for some reason RRA always sets the zero flag to false
+            break;
+        }
+
+        case 0x20: { // JR NZ - if zero flag is false, perform relative jump using the next byte as a signed offset
             int8_t offset = fetch_byte();
             if (z()) break;
             PC += offset;
@@ -1507,10 +1606,17 @@ uint32_t CPU::tick()
         }
 
         case 0x24: { // increment the contents of register H by 1.
-            h((H & 0xF) == 0xF);
-            ++H;
-            z(H == 0);
-            n(false);
+            INC(H);
+            break;
+        }
+
+        case 0x25: { // decrement the contents of register H by 1.
+            DEC(H);
+            break;
+        }
+
+        case 0x26: { // load the 8-bit immediate operand d8 into register H.
+            H = fetch_byte();
             break;
         }
 
@@ -1519,6 +1625,11 @@ uint32_t CPU::tick()
             if (not z()) break;
             PC += offset;
             m_cycle();
+            break;
+        }
+
+        case 0x29: { // add the contents of register pair HL to the contents of register pair HL, and store the results in register pair HL.
+            ADD_HL(HL());
             break;
         }
 
@@ -1546,6 +1657,14 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x30: { // JR NC - if carry flag is false, perform relative jump using the next byte as a signed offset
+            int8_t offset = fetch_byte();
+            if (c()) break;
+            PC += offset;
+            m_cycle();
+            break;
+        }
+
         case 0x31: { // load next two byte into register SP
             uint8_t lower = fetch_byte();
             uint8_t upper = fetch_byte();
@@ -1568,24 +1687,18 @@ uint32_t CPU::tick()
         case 0x34: { // increment the contents of memory specified by register pair HL by 1.
             uint8_t val = yume_boy_.read_memory(HL());
             m_cycle();
-            h((val & 0xF) == 0xF);
-            ++val;
+            INC(val);
             yume_boy_.write_memory(HL(), val);
             m_cycle();
-            z(val == 0);
-            n(false);
             break;
         }
 
         case 0x35: { // decrement the contents of memory specified by register pair HL by 1.
             uint8_t val = yume_boy_.read_memory(HL());
             m_cycle();
-            h((val & 0xF) == 0);
-            --val;
+            DEC(val);
             yume_boy_.write_memory(HL(), val);
             m_cycle();
-            z(val == 0);
-            n(true);
             break;
         }
 
@@ -1603,19 +1716,18 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x39: { // add the contents of register pair SP to the contents of register pair HL, and store the results in register pair HL.
+            ADD_HL(SP);
+            break;
+        }
+
         case 0x3C: { // increment the contents of register A by 1.
-            h((A & 0xF) == 0xF);
-            ++A;
-            z(A == 0);
-            n(false);
+            INC(A);
             break;
         }
 
         case 0x3D: { // decrement the contents of register A by 1.
-            h((A & 0xF) == 0);
-            --A;
-            z(A == 0);
-            n(true);
+            DEC(A);
             break;
         }
 
@@ -1858,8 +1970,33 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x70: { // store the contents of register B in the memory location specified by register pair HL.
+            LD_memory(HL(), B);
+            break;
+        }
+
+        case 0x71: { // store the contents of register C in the memory location specified by register pair HL.
+            LD_memory(HL(), C);
+            break;
+        }
+
+        case 0x72: { // store the contents of register D in the memory location specified by register pair HL.
+            LD_memory(HL(), D);
+            break;
+        }
+
         case 0x73: { // store the contents of register E in the memory location specified by register pair HL.
             LD_memory(HL(), E);
+            break;
+        }
+
+        case 0x74: { // store the contents of register H in the memory location specified by register pair HL.
+            LD_memory(HL(), H);
+            break;
+        }
+
+        case 0x75: { // store the contents of register L in the memory location specified by register pair HL.
+            LD_memory(HL(), H);
             break;
         }
 
@@ -1959,10 +2096,40 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x91: { // SUB C
+            SUB(C);
+            break;
+        }
+
+        case 0x92: { // SUB D
+            SUB(D);
+            break;
+        }
+
+        case 0x93: { // SUB E
+            SUB(E);
+            break;
+        }
+
+        case 0x94: { // SUB H
+            SUB(H);
+            break;
+        }
+
+        case 0x95: { // SUB L
+            SUB(L);
+            break;
+        }
+
         case 0x96: { // subtract the contents of memory specified by register pair HL from the contents of register A, and store the results in register A.
             auto mem = yume_boy_.read_memory(HL());
             m_cycle();
             SUB(mem);
+            break;
+        }
+
+        case 0x97: { // SUB A
+            SUB(A);
             break;
         }
 
@@ -2007,10 +2174,7 @@ uint32_t CPU::tick()
         }
 
         case 0xA7: { // A AND A (effectively only sets flags)
-            z(A == 0);
-            n(false);
-            h(true);
-            c(false);
+            AND(A);
             break;
         }
 
@@ -2044,12 +2208,15 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xAE: { // A XOR (HL)
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            XOR(byte);
+            break;
+        }
+
         case 0xAF: { // A XOR A (effectively sets register A to 0)
-            A = 0;
-            z(true);
-            n(false);
-            h(false);
-            c(false);
+            XOR(A);
             break;
         }
 
@@ -2080,6 +2247,13 @@ uint32_t CPU::tick()
 
         case 0xB5: { // A OR L
             OR(L);
+            break;
+        }
+
+        case 0xB6: { // A OR (HL)
+            uint8_t val = yume_boy_.read_memory(HL());
+            m_cycle();
+            OR(val);
             break;
         }
 
@@ -2212,13 +2386,36 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xCE: { // ADC A, d8 - add the contents of the 8-bit immediate operand d8 and the CY flag to the contents of register A, and store the results in register A.
+            ADC(fetch_byte());
+            break;
+        }
+
         case 0xCF: { // RST 1 - Push the current value of the program counter PC onto the memory stack, and load into PC the 1th byte of page 0 memory addresses, 0x08.
             RST(1);
             break;
         }
 
+        case 0xD0: { // RET NC - If the CY flag is false, control is returned to the source program by popping from the memory stack the program counter PC value that was pushed to the stack when the subroutine was called.
+            m_cycle();  // internal cycle
+            if (c()) break;
+            PC = POP();
+            m_cycle();  // internal cycle
+            break;
+        }
+
         case 0xD1: { // pop the contents from the memory stack into register pair into register pair DE.
             DE(POP());
+            break;
+        }
+
+        case 0xD4: { // CALL NC a16 - If the CY flag is 0, the program counter PC value corresponding to the memory location of the instruction following the CALL instruction is pushed to the 2 bytes following the memory byte specified by the stack pointer SP. The 16-bit immediate operand a16 is then loaded into PC.
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            auto target_addr = uint16_t((upper << 8) | lower);
+            if (c()) { break; }
+            PUSH(PC);
+            PC = target_addr;
             break;
         }
 
@@ -2234,6 +2431,14 @@ uint32_t CPU::tick()
 
         case 0xD7: { // RST 2 - Push the current value of the program counter PC onto the memory stack, and load into PC the 1th byte of page 0 memory addresses, 0x10.
             RST(2);
+            break;
+        }
+
+        case 0xD8: { // RET C - If the CY flag is true, control is returned to the source program by popping from the memory stack the program counter PC value that was pushed to the stack when the subroutine was called.
+            m_cycle();  // internal cycle
+            if (not c()) break;
+            PC = POP();
+            m_cycle();  // internal cycle
             break;
         }
 
@@ -2320,6 +2525,11 @@ uint32_t CPU::tick()
 
         case 0xF5: { // Push the contents of register pair AF onto the memory stack.
             PUSH(AF());
+            break;
+        }
+
+        case 0xF6: { // Take the logical OR for each bit of the contents of 8-bit immediate operand d8 and the contents of register A, and store the results in register A.
+            OR(fetch_byte());
             break;
         }
 
