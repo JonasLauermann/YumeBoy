@@ -1413,7 +1413,12 @@ uint32_t CPU::tick()
 
     // check if an interrupt was requested and if the specific interrupt is enabled
     assert(not (IF_ & 0xE0) and "Interrupt flag set for invalid bits");
-    if (uint8_t req_intrrupt = IE_ & IF_; IME and req_intrrupt) {
+
+    uint8_t req_intrrupt = IE_ & IF_;
+    HALT_mode_ = req_intrrupt ? false : HALT_mode_;
+
+    if (IME and req_intrrupt) {
+
         // if multiple interrupts were requested at the same time, handle lower bit interrupts first
         uint8_t interrupt_bit = 0;
         while (not (req_intrrupt & 0x1)) { req_intrrupt = req_intrrupt >> 1; interrupt_bit++; }
@@ -1432,9 +1437,23 @@ uint32_t CPU::tick()
         m_cycle();
     }
 
+    // if HALT mode is active, to nothing for a cycle
+    if (HALT_mode_) {
+        m_cycle();
+        HALT_bug_ = false;
+        return time_;
+    }
+
+    uint8_t opcode = fetch_byte();
+    // in case HALKT_bug_ is still true, then HALT mode was immediatley exited, causing the PC to not be incremented after fetch
+    if (HALT_bug_) [[unlikely]] {
+        --PC;
+        HALT_bug_ = false;
+    }
+
     /* Execute next Instruction */
     // fetch program counter
-    switch (uint8_t opcode = fetch_byte()) {
+    switch (opcode) {
         case 0x00:  // NOP
             break;
 
@@ -2018,6 +2037,12 @@ uint32_t CPU::tick()
 
         case 0x75: { // store the contents of register L in the memory location specified by register pair HL.
             LD_memory(HL(), H);
+            break;
+        }
+
+        case 0x76: { // HALT (https://rgbds.gbdev.io/docs/v0.7.0/gbz80.7#HALT)
+            HALT_mode_ = true;
+            HALT_bug_ = true;
             break;
         }
 

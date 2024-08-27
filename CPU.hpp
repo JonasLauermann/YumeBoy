@@ -93,6 +93,9 @@ class CPU {
      *   -1 := Do nothing. */
     int8_t EI_delay = -1;
 
+    bool HALT_mode_ = false;
+    bool HALT_bug_ = false;
+
     class TimerDivider {
         friend CPU;
         CPU &cpu_;
