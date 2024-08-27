@@ -92,9 +92,10 @@ void CPU::ADD(uint8_t const &source)
 
 void CPU::ADC(uint8_t const &source)
 {
+    uint8_t old_carry = c();
     h((A & 0xF) + (source & 0xF) + uint8_t(c()) > 0xF);
     c(A + uint8_t(c()) > 0xFF - source);
-    A += source + uint8_t(c());
+    A += source + old_carry;
     z(A == 0);
     n(false);
 }
@@ -1620,6 +1621,26 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x27: { // DAA: Adjust the accumulator (register A) too a binary-coded decimal (BCD) number after BCD addition and subtraction operations. (https://blog.ollien.com/posts/gb-daa/)
+            uint8_t offset = 0x00;
+            if (((A & 0xF) > 0x9 and not n()) or h())
+                offset += 0x06;
+
+            if ((A > 0x99 and not n()) or c()) {
+                offset += 0x60;
+                c(true);
+            }
+            
+            if (n())
+                A -= offset;
+            else
+                A += offset;
+
+            z(A == 0);
+            h(false);
+            break;
+        }
+
         case 0x28: { // if the z flag is true, jump s8 steps from the current address stored in the program counter (PC).
             int8_t offset = fetch_byte();
             if (not z()) break;
@@ -2262,8 +2283,18 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xB8: { // compare the contents of register B and the contents of register A by calculating A - B, and set the Z flag if they are equal.
+            CP_register(B);
+            break;
+        }
+
         case 0xB9: { // compare the contents of register C and the contents of register A by calculating A - C, and set the Z flag if they are equal.
             CP_register(C);
+            break;
+        }
+
+        case 0xBA: { // compare the contents of register D and the contents of register A by calculating A - D, and set the D flag if they are equal.
+            CP_register(D);
             break;
         }
 
@@ -2272,8 +2303,23 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xBC: { // compare the contents of register H and the contents of register A by calculating A - H, and set the Z flag if they are equal.
+            CP_register(H);
+            break;
+        }
+
+        case 0xBD: { // compare the contents of register L and the contents of register A by calculating A - L, and set the Z flag if they are equal.
+            CP_register(L);
+            break;
+        }
+
         case 0xBE: { // compare the contents of memory specified by register pair HL and the contents of register A by calculating A - (HL), and set the Z flag if they are equal.
             CP_memory(HL());
+            break;
+        }
+
+        case 0xBF: { // compare the contents of register A and the contents of register A by calculating A - A, and set the Z flag if they are equal.
+            CP_register(A);
             break;
         }
 
@@ -2293,8 +2339,9 @@ uint32_t CPU::tick()
         case 0xC2: { // JP NZ a16 - Load the 16-bit immediate operand a16 into the program counter (PC) if the Z flag is 0. a16 specifies the address of the subsequently executed instruction.
             uint8_t lower = fetch_byte();
             uint8_t upper = fetch_byte();
-            PC = uint16_t((upper << 8) | lower);
+            auto target_addr = uint16_t((upper << 8) | lower);
             if (z()) break;
+            PC = target_addr;
             m_cycle();  // internal
             break;
         }
@@ -2311,7 +2358,7 @@ uint32_t CPU::tick()
             uint8_t lower = fetch_byte();
             uint8_t upper = fetch_byte();
             auto target_addr = uint16_t((upper << 8) | lower);
-            if (z()) { break; }
+            if (z()) break;
             PUSH(PC);
             PC = target_addr;
             break;
@@ -2538,6 +2585,17 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xF8: { // LD HL, SP+s8 - Add the 8-bit signed operand s8 (values -128 to +127) to the stack pointer SP, and store the result in register pair HL.
+            int8_t offset = fetch_byte();
+            c(SP > 0xFF - offset);
+            h((SP & 0xF) > 0x0F - (offset & 0xF));
+            HL(SP + offset);
+            m_cycle();  // internal
+            n(false);
+            z(false);
+            break;
+        }
+
         case 0xFA: { // load into register A the contents of the internal RAM or register specified by the 16-bit immediate operand a16.
             uint8_t lower = fetch_byte();
             uint8_t upper = fetch_byte();
@@ -2623,8 +2681,8 @@ void CPU::TimerDivider::tick(bool new_m_cycle)
     // writes to TIMA must block the falling edge detector (https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#write_edge)
     if (not tima_written) {
         // TIMA overflow falling edge detector
-        bool tima_high_bit = TIMA_ & 1 << 7;
-        tima_overflow = tima_high_bit or not old_tima_bit;
+        bool tima_high_bit = TIMA_ & (1 << 7);
+        tima_overflow = ((not tima_high_bit) and old_tima_bit);
         old_tima_bit = tima_high_bit;
     } else {
         tima_overflow = false;

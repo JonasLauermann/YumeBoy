@@ -48,7 +48,7 @@ class CPU {
 
     void AF(uint16_t x) {
         A = x >> 8;
-        F = x & 0xFF;
+        F = x & 0xF0;   // bits 0-3 are always zero
     }
     void BC(uint16_t x) {
         B = x >> 8;
