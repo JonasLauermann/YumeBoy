@@ -10,7 +10,7 @@ void CPU::m_cycle(uint8_t cycles)
 
     // increament timer clock per T-cycle
     for ( ; t_cycles > 0; --t_cycles ) {
-        timer_divider()->tick((t_cycles % 4) == 0);
+        timer_divider()->tick((t_cycles % 4) == 0, (t_cycles % 4) == 1);
     }
 }
 
@@ -2637,14 +2637,14 @@ uint32_t CPU::tick()
 //=========================================================================
 
 
-void CPU::TimerDivider::tick(bool new_m_cycle)
+void CPU::TimerDivider::tick(bool begin_m_cycle, bool end_m_cycle)
 {
     // based on https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#relation-between-timer-and-divider-register
     // increment system_counter
     ++system_counter;
 
     // request interrupt if a m_cycle has passed and the TIMA register has overflown
-    if (new_m_cycle and tima_overflow) {
+    if (begin_m_cycle and tima_overflow) {
         // request interrupt
         cpu_.yume_boy_.request_interrupt(YumeBoy::INTERRUPT::TIMER_INTERRUPT);
 
@@ -2684,7 +2684,9 @@ void CPU::TimerDivider::tick(bool new_m_cycle)
         bool tima_high_bit = TIMA_ & (1 << 7);
         tima_overflow = ((not tima_high_bit) and old_tima_bit);
         old_tima_bit = tima_high_bit;
-    } else {
-        tima_overflow = false;
     }
+
+    // release lock on falling edge detector at the end of an m_cycle
+    if (end_m_cycle)
+        tima_written = false;
 }

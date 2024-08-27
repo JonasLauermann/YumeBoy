@@ -125,8 +125,9 @@ class CPU {
         explicit TimerDivider(CPU &cpu) : cpu_(cpu) { }
 
         /* Advance the Timer state by a single tick.
-           `new_m_cycle` should be set to true to signal to the Timer that it should request a Interrupt if TIMA has overflown (see https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#timer-overflow-behavior) */
-        void tick(bool new_m_cycle);
+           `begin_m_cycle` should be set to true to signal to the Timer that it should request a Interrupt if TIMA has overflown (see https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#timer-overflow-behavior) 
+           `end_m_cycle` should be set to true to signal to the Timer that it should release the lock on the TIMA overflow detector (see https://gbdev.io/pandocs/Timer_Obscure_Behaviour.html#timer-overflow-behavior) */
+        void tick(bool begin_m_cycle, bool end_m_cycle);
 
         public:
 
