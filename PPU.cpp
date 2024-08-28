@@ -112,7 +112,7 @@ void PPU::PixelFetcher::bg_tick()
     case 1:
     { // Fetch Tile Data (Low)
         // determine which tile-map is in use based on LCDC bit 4
-        uint16_t tile_data_addr = p.LCDC & 1 << 4 ? uint16_t(0x8000 + (tile_id << 4)) : uint16_t(0x9000 + (tile_id << 4));
+        uint16_t tile_data_addr = p.LCDC & 1 << 4 ? uint16_t(0x8000 + (tile_id << 4)) : uint16_t(0x9000 + (tile_id << 4));  // TODO shouldn't tile_id be signed for 9000-mode?
         uint8_t line_offset = fetch_window ? ((p.LY - p.WY) % 8) * 2 : ((p.LY + p.SCY) % 8) * 2;
         low_data = p.vram_[tile_data_addr - VRAM_BEGIN + line_offset];
         break;
@@ -120,7 +120,7 @@ void PPU::PixelFetcher::bg_tick()
     case 2:
     { // Fetch Tile Data (High)
         // determine which tile-map is in use based on LCDC bit 4
-        uint16_t tile_data_addr = p.LCDC & 1 << 4 ? uint16_t(0x8000 + (tile_id << 4)) : uint16_t(0x9000 + (tile_id << 4));
+        uint16_t tile_data_addr = p.LCDC & 1 << 4 ? uint16_t(0x8000 + (tile_id << 4)) : uint16_t(0x9000 + (tile_id << 4));  // TODO shouldn't tile_id be signed for 9000-mode?
         uint8_t line_offset = fetch_window ? ((p.LY - p.WY) % 8) * 2 : ((p.LY + p.SCY) % 8) * 2;
         high_data = p.vram_[tile_data_addr - VRAM_BEGIN + line_offset + 1];
         break;
@@ -163,15 +163,17 @@ void PPU::PixelFetcher::sprite_tick()
     case 1:
     { // Fetch Tile Data (Low)
         auto tile_data_addr = uint16_t(0x8000 + (tile_id << 4));
-        uint8_t line_offset = oam_entry.flags & 1 << 5 ? (8 - ((p.LY - oam_entry.y) % 8)) * 2 : ((p.LY - oam_entry.y) % 8) * 2;
-        low_data = p.vram_[tile_data_addr + line_offset];
+        uint8_t line_offset = oam_entry.flags & 1 << 5 ? (7 - ((p.LY + oam_entry.y) % 8)) * 2 : ((p.LY + oam_entry.y) % 8) * 2;
+        assert(line_offset < 8);
+        low_data = p.vram_[tile_data_addr - VRAM_BEGIN + line_offset];
         break;
     }
     case 2:
     { // Fetch Tile Data (High)
         auto tile_data_addr = uint16_t(0x8000 + (tile_id << 4));
-        uint8_t line_offset = oam_entry.flags & 1 << 5 ? (8 - ((p.LY - oam_entry.y) % 8)) * 2 : ((p.LY - oam_entry.y) % 8) * 2;
-        low_data = p.vram_[tile_data_addr + line_offset + 1];
+        uint8_t line_offset = oam_entry.flags & 1 << 5 ? (7 - ((p.LY + oam_entry.y) % 8)) * 2 : ((p.LY + oam_entry.y) % 8) * 2;
+        assert(line_offset < 8);
+        high_data = p.vram_[tile_data_addr - VRAM_BEGIN + line_offset + 1];
         break;
     }
     case 3:
@@ -179,9 +181,9 @@ void PPU::PixelFetcher::sprite_tick()
         for (int i = 0; i < 8; ++i)
         {
             // flip pixels vertically if flag is set
-            int j = oam_entry.flags & 1 << 6 ? i : 7 - i;
-            assert(j > 0);
-            uint8_t color = ((high_data >> (j - 1)) & 0b10) | ((low_data >> j) & 0b1);
+            int j = oam_entry.flags & (1 << 6) ? i : 7 - i;
+            assert(j >= 0);
+            uint8_t color = (((high_data << 1) >> j) & 0b10) | ((low_data >> j) & 0b1);
             ColorPallet pallet = oam_entry.flags & 1 << 4 ? S1 : S0;
 
             // skip pixel if another sprite already occupies the pixel or if it is off-screen
@@ -206,7 +208,7 @@ void PPU::PixelFetcher::sprite_tick()
 
 void PPU::PixelFetcher::fetch_sprite(OAM_entry entry)
 {
-    assert(fetch_sprite_);
+    assert(not fetch_sprite_);
     // reset fetcher steps and switch mode
     oam_entry = entry;
     step = 0;
@@ -220,6 +222,51 @@ void PPU::PixelFetcher::reset()
     step = 0;
     fetch_sprite_ = false;
     fetch_window = false;
+}
+
+void PPU::next_scanline()
+{
+    ++LY;
+    if (LYC == LY) {
+        STAT |= 1 << 2;
+    } else {
+        STAT &= 0b11111011;
+    }
+}
+
+bool PPU::STATE_interrupt_signal()
+{
+    // LYC == LY interrupt
+    if ((STAT & (1 << 6)) and (STAT & (1 << 2))) [[unlikely]]
+        return true;
+    
+    // Mode 2 interrupt
+    if ((STAT & (1 << 5)) and (STAT & 0b11) == 2) [[unlikely]]
+        return true;
+    
+    // Mode 1 interrupt
+    if ((STAT & (1 << 4)) and (STAT & 0b11) == 1) [[unlikely]]
+        return true;
+    
+    // Mode 0 interrupt
+    if ((STAT & (1 << 3)) and (STAT & 0b11) == 0) [[unlikely]]
+        return true;
+    
+    return false;
+}
+
+void PPU::OAM_transfer()
+{
+    // https://hacktix.github.io/GBEDG/dma/
+    // TODO currently OAM transfer is instant => include t_cycles
+
+    for (uint8_t lower_addr = 0; lower_addr <= 0x9F; ++lower_addr) {
+        uint16_t source_addr = uint16_t((DMA << 8) | lower_addr);
+        uint16_t dest_addr = 0xFE00 | lower_addr;
+
+        uint8_t value = yume_boy_.read_memory(source_addr);
+        yume_boy_.write_memory(dest_addr, value);
+    }
 }
 
 uint8_t PPU::read_vram(uint16_t addr)
@@ -318,6 +365,7 @@ void PPU::write_lcd_register(uint16_t addr, uint8_t value)
         break;
     case 0xFF46:
         DMA = value;
+        OAM_transfer();
         break;
     case 0xFF47:
         BGP = value;
@@ -345,7 +393,8 @@ void PPU::h_blank_tick()
     if (scanline_time_ == 456)
     {
         /* Move to next scanline and switch mode */
-        if (++LY == 144)
+        next_scanline();
+        if (LY == 144)
         {
             set_mode(V_Blank);
             yume_boy_.request_interrupt(YumeBoy::INTERRUPT::V_BLANK_INTERRUPT);
@@ -369,7 +418,8 @@ void PPU::v_blank_tick()
     {
         /* Move to next scanline and switch mode if necessary */
         assert(144 <= LY and LY <= 153);
-        if (++LY == 154)
+        next_scanline();
+        if (LY == 154)
         {
             LY = 0;
             set_mode(OAM_Scan);
@@ -393,7 +443,7 @@ void PPU::oam_scan_tick()
     oam_pointer += 4;
 
     // check if the OAM entry is visible on the current scanline
-    if ((LY + 16 <= e.y and e.y + 8 + (8 * ((LCDC >> 2) & 1)) <= LY + 16) and (scanline_sprites.size() < 10))
+    if ((LY + 16 >= e.y and e.y + 8 + (8 * ((LCDC >> 2) & 1)) > LY + 16) and (scanline_sprites.size() < 10))
     {
         scanline_sprites.push_back(e);
     }
@@ -423,7 +473,7 @@ void PPU::pixel_transfer_tick()
             scanline_sprites.begin(),
             scanline_sprites.end(),
             [&](OAM_entry e)
-            { return e.x <= fifo_pushed_pixels; });
+            { return e.x <= fifo_pushed_pixels + 9; }); // not entirely sure why we have to offset by 9, seems like a bug elsewhere
         it != scanline_sprites.end())
     {
         fetcher.fetch_sprite(*it);
@@ -497,4 +547,39 @@ void PPU::pixel_transfer_tick()
             Sprite_FIFO.pop();
         set_mode(H_Blank);
     }
+}
+
+uint32_t PPU::tick() {
+    // skip if LCD is turned off
+    if (not (LCDC & 1 << 7)) return 1;
+
+    /* set time of current tick to 0. */
+    tick_time_ = 0;
+
+    // save current STAT register for rising edge detector (https://gbdev.io/pandocs/Interrupt_Sources.html#int-48--stat-interrupt)
+    bool old_STATE_signal = STATE_interrupt_signal();
+
+    // Determine current mode_
+    switch (mode_) {
+        case H_Blank:
+            h_blank_tick();
+            break;
+        case V_Blank:
+            v_blank_tick();
+            break;
+        case OAM_Scan: 
+            oam_scan_tick();
+            break;
+        case Pixel_Transfer:
+            pixel_transfer_tick();
+            break;
+        default:
+            throw std::runtime_error("Unknown PPU mode");
+    }
+
+    // check for STAT interrupts (rising edge detector)
+    if (not old_STATE_signal and STATE_interrupt_signal())
+        yume_boy_.request_interrupt(YumeBoy::INTERRUPT::STAT_INTERRUPT);
+
+    return tick_time_;
 }

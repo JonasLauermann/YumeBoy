@@ -27,7 +27,7 @@ public:
     Cartridge(std::vector<uint8_t> rom_bytes, std::vector<uint8_t> ram_bytes, uint8_t carrtidge_type, uint8_t rom_size, uint8_t ram_size) : rom_bytes_(std::move(rom_bytes)), ram_bytes_(std::move(ram_bytes)), CARTRIDGE_TYPE(carrtidge_type), ROM_SIZE(rom_size), RAM_SIZE(ram_size) {}
 
     virtual uint8_t read_rom(uint16_t addr) = 0;
-    virtual void write_rom(uint16_t addr [[maybe_unused]], uint8_t value [[maybe_unused]]) {};
+    virtual void write_rom(uint16_t addr [[maybe_unused]], uint8_t value [[maybe_unused]]) { /* Writing to ROM is not possible by default. */ };
 
     virtual uint8_t read_ram(uint16_t addr) = 0;
     virtual void write_ram(uint16_t addr, uint8_t value) = 0;
@@ -44,7 +44,7 @@ public:
     uint8_t read_rom(uint16_t addr) override;
 
     uint8_t read_ram(uint16_t addr [[maybe_unused]]) override { return 0xFF; };
-    void write_ram(uint16_t addr [[maybe_unused]], uint8_t value [[maybe_unused]]) override {};
+    void write_ram(uint16_t addr [[maybe_unused]], uint8_t value [[maybe_unused]]) override { /* As the name suggests ROM_ONLY does not have any RAM to write to. */ };
 };
 
 template <bool BATTERY>

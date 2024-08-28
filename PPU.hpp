@@ -139,8 +139,8 @@ class PPU {
     uint16_t oam_pointer = OAM_RAM_BEGIN;
 
     struct OAM_entry {
-        uint8_t x;
         uint8_t y;
+        uint8_t x;
         uint8_t tile_id;
         uint8_t flags;
     };
@@ -195,6 +195,14 @@ class PPU {
     };
     PixelFetcher fetcher;
 
+    /* Increment LY and update STAT register */
+    void next_scanline();
+
+    /* Returns true if a STAT interrupt should be requested */
+    bool STATE_interrupt_signal();
+
+    /* Performs OAM DMA Transfer */
+    void OAM_transfer();
 
 public:
     PPU() = delete;
@@ -225,30 +233,5 @@ public:
     void pixel_transfer_tick();
 
     /* Runs the PPU until it reaches the next "stable" state. Returns the amount of time spent. */
-    uint32_t tick() {
-        // skip if LCD is turned off
-        if (not (LCDC & 1 << 7)) return 1;
-
-        /* set time of current tick to 0. */
-        tick_time_ = 0;
-
-        // Determine current mode_
-        switch (mode_) {
-            case H_Blank:
-                h_blank_tick();
-                break;
-            case V_Blank:
-                v_blank_tick();
-                break;
-            case OAM_Scan: 
-                oam_scan_tick();
-                break;
-            case Pixel_Transfer:
-                pixel_transfer_tick();
-                break;
-            default:
-                throw std::runtime_error("Unknown PPU mode");
-        }
-        return tick_time_;
-    }
+    uint32_t tick();
 };
