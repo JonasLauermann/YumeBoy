@@ -111,11 +111,12 @@ void CPU::SUB(uint8_t const &source)
 
 void CPU::SBC(uint8_t const &source)
 {
-    z(A == (source + uint8_t(c())));
+    uint8_t old_carry = c();
     n(true);
-    h((A & 0xF) < ((source + uint8_t(c())) & 0xF));
-    c(A < (source + uint8_t(c())));
-    A -= source + uint8_t(c());
+    h((A & 0xF) < (source & 0xF) + old_carry);
+    c(A < (source + old_carry));
+    A -= source + old_carry;
+    z(A == 0);
 }
 
 void CPU::AND(uint8_t const &source)
@@ -2552,6 +2553,11 @@ uint32_t CPU::tick()
             IME = true; // as far as I can tell RETI does not have a one-instruction delay like EI
             PC = POP();
             m_cycle();  // internal cycle
+            break;
+        }
+
+        case 0xDE: { // SBC A, d8 - subtract the contents of the 8-bit immediate operand d8 and the carry flag CY from the contents of register A, and store the results in register A.
+            SBC(fetch_byte());
             break;
         }
 
