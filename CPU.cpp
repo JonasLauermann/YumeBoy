@@ -1405,9 +1405,9 @@ uint32_t CPU::tick()
 
     /* Interrupt Handling */
     // check if interrupts should be enabled or disabled
-    if (EI_delay == 1) {
+    if (EI_delay == 1) [[unlikely]] {
         --EI_delay;
-    } else if (EI_delay == 0) {
+    } else if (EI_delay == 0) [[unlikely]] {
         IME = true;
         --EI_delay;
     }
@@ -1418,7 +1418,7 @@ uint32_t CPU::tick()
     uint8_t req_intrrupt = IE_ & IF_;
     HALT_mode_ = req_intrrupt ? false : HALT_mode_;
 
-    if (IME and req_intrrupt) {
+    if (IME and req_intrrupt) [[unlikely]] {
 
         // if multiple interrupts were requested at the same time, handle lower bit interrupts first
         uint8_t interrupt_bit = 0;
@@ -1439,7 +1439,7 @@ uint32_t CPU::tick()
     }
 
     // if HALT mode is active, to nothing for a cycle
-    if (HALT_mode_) {
+    if (HALT_mode_) [[unlikely]] {
         m_cycle();
         HALT_bug_ = false;
         return time_;
@@ -2071,7 +2071,7 @@ uint32_t CPU::tick()
         }
 
         case 0x75: { // store the contents of register L in the memory location specified by register pair HL.
-            LD_memory(HL(), H);
+            LD_memory(HL(), L);
             break;
         }
 
