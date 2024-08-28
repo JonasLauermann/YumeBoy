@@ -1491,6 +1491,17 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x08: { // Store the lower byte of stack pointer SP at the address specified by the 16-bit immediate operand a16, and store the upper byte of SP at address a16 + 1.
+            uint8_t lower = fetch_byte();
+            uint8_t higher = fetch_byte();
+            uint16_t addr = lower | higher << 8;
+            yume_boy_.write_memory(addr, SP & 0xFF);
+            m_cycle();
+            yume_boy_.write_memory(addr + 1, SP >> 8);
+            m_cycle();
+            break;
+        }
+
         case 0x09: { // add the contents of register pair BC to the contents of register pair HL, and store the results in register pair HL.
             ADD_HL(BC());
             break;
@@ -1574,6 +1585,12 @@ uint32_t CPU::tick()
 
         case 0x1A: { // load the 8-bit contents of memory specified by register pair DE into register A.
             LD_register(A, DE());
+            break;
+        }
+
+        case 0x1B: { // decrement the contents of register DE by 1.
+            DE(DE() - 1);
+            m_cycle();
             break;
         }
 
@@ -1680,6 +1697,12 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x2B: { // decrement the contents of register HL by 1.
+            HL(HL() - 1);
+            m_cycle();
+            break;
+        }
+
         case 0x2C: { // increment the contents of register L by 1.
             INC(L);
             break;
@@ -1687,6 +1710,11 @@ uint32_t CPU::tick()
 
         case 0x2D: { // decrement the contents of register L by 1.
             DEC(L);
+            break;
+        }
+
+        case 0x2E: { // load the 8-bit immediate operand d8 into register L.
+            L = fetch_byte();
             break;
         }
 
@@ -1758,6 +1786,12 @@ uint32_t CPU::tick()
 
         case 0x39: { // add the contents of register pair SP to the contents of register pair HL, and store the results in register pair HL.
             ADD_HL(SP);
+            break;
+        }
+
+        case 0x3B: { // decrement the contents of register SP by 1.
+            --SP;
+            m_cycle();
             break;
         }
 
@@ -2556,6 +2590,18 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xE8: { // ADD SP, s8 - Add the contents of the 8-bit signed (2's complement) immediate operand s8 and the stack pointer SP and store the results in SP.
+            int8_t offset = fetch_byte();
+            c(SP > 0xFF - offset);
+            h((SP & 0xF) > 0x0F - (offset & 0xF));
+            SP += offset;
+            m_cycle();  // internal
+            m_cycle();  // write to SP
+            z(false);
+            n(false);
+            break;
+        }
+
         case 0xE9: { // JP HL - Load the contents of register pair HL into the program counter PC.
             PC = HL();
             break;
@@ -2618,6 +2664,12 @@ uint32_t CPU::tick()
             m_cycle();  // internal
             n(false);
             z(false);
+            break;
+        }
+
+        case 0xF9: { // LD SP, HL - Load the contents of register pair HL into the stack pointer SP.
+            SP = HL();
+            m_cycle();  // internal
             break;
         }
 
