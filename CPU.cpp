@@ -172,6 +172,24 @@ void CPU::CP_memory(uint16_t addr)
     c(A < mem_value);
 }
 
+void CPU::RLC(uint8_t &target)
+{
+    c(target & 1 << 7);
+    target = uint8_t((target << 1) | uint8_t(c()));
+    z(target == 0);
+    n(false);
+    h(false);
+}
+
+void CPU::RRC(uint8_t &target)
+{
+    c(target & 1);
+    target = uint8_t((target >> 1) | uint8_t(c()) << 7);
+    z(target == 0);
+    n(false);
+    h(false);
+}
+
 void CPU::RL(uint8_t &target)
 {
     uint8_t old_carry = c();
@@ -192,15 +210,6 @@ void CPU::RR(uint8_t &target)
     h(false);
 }
 
-void CPU::RLC(uint8_t &target)
-{
-    c(target & 1 << 7);
-    target = uint8_t((target << 1) | uint8_t(c()));
-    z(target == 0);
-    n(false);
-    h(false);
-}
-
 void CPU::SLA(uint8_t &target)
 {
     c(target & 1 << 7);
@@ -208,6 +217,24 @@ void CPU::SLA(uint8_t &target)
     z(target == 0);
     n(false);
     h(false);
+}
+
+void CPU::SRA(uint8_t &target)
+{
+    c(target & 1);
+    target = (target >> 1) | (target & (1 << 7));
+    z(target == 0);
+    n(false);
+    h(false);
+}
+
+void CPU::SWAP(uint8_t &target)
+{
+    target = ((target << 4) & 0b11110000) | (target >> 4);
+    z(target == 0);
+    n(false);
+    h(false);
+    c(false);
 }
 
 void CPU::SRL(uint8_t &target)
@@ -243,8 +270,135 @@ void CPU::cb_opcodes()
 {
     uint8_t opcode = fetch_byte();
     switch (opcode) {
+        case 0x00: { // rotate the contents of register B to the left.
+            RLC(B);
+            break;
+        }
+
+        case 0x01: { // rotate the contents of register C to the left.
+            RLC(C);
+            break;
+        }
+
+        case 0x02: { // rotate the contents of register D to the left.
+            RLC(D);
+            break;
+        }
+
+        case 0x03: { // rotate the contents of register E to the left.
+            RLC(E);
+            break;
+        }
+
+        case 0x04: { // rotate the contents of register H to the left.
+            RLC(H);
+            break;
+        }
+
+        case 0x05: { // rotate the contents of register L to the left.
+            RLC(L);
+            break;
+        }
+
+        case 0x06: { // rotate the contents of memory specified by HL to the left.
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            RLC(byte);
+            yume_boy_.write_memory(HL(), byte);
+            m_cycle();
+            break;
+        }
+
+        case 0x07: { // rotate the contents of register A to the left.
+            RLC(A);
+            break;
+        }
+
+        case 0x08: { // rotate the contents of register B to the right.
+            RRC(B);
+            break;
+        }
+
+        case 0x09: { // rotate the contents of register C to the right.
+            RRC(C);
+            break;
+        }
+
+        case 0x0A: { // rotate the contents of register D to the right.
+            RRC(D);
+            break;
+        }
+
+        case 0x0B: { // rotate the contents of register E to the right.
+            RRC(E);
+            break;
+        }
+
+        case 0x0C: { // rotate the contents of register H to the right.
+            RRC(H);
+            break;
+        }
+
+        case 0x0D: { // rotate the contents of register L to the right.
+            RRC(L);
+            break;
+        }
+
+        case 0x0E: { // rotate the contents of memory specified by HL to the right.
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            RRC(byte);
+            yume_boy_.write_memory(HL(), byte);
+            m_cycle();
+            break;
+        }
+
+        case 0x0F: { // rotate the contents of register A to the right.
+            RRC(A);
+            break;
+        }
+
+        case 0x10: { // rotate the contents of register B to the left.
+            RL(B);
+            break;
+        }
+
         case 0x11: { // rotate the contents of register C to the left.
             RL(C);
+            break;
+        }
+
+        case 0x12: { // rotate the contents of register D to the left.
+            RL(D);
+            break;
+        }
+
+        case 0x13: { // rotate the contents of register E to the left.
+            RL(E);
+            break;
+        }
+
+        case 0x14: { // rotate the contents of register H to the left.
+            RL(H);
+            break;
+        }
+
+        case 0x15: { // rotate the contents of register L to the left.
+            RL(L);
+            break;
+        }
+
+        case 0x16: { // rotate the contents of memory specified by HL to the left.
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            RL(byte);
+            yume_boy_.write_memory(HL(), byte);
+            m_cycle();
+            break;
+        }
+
+        case 0x17: { // rotate the contents of register A to the left.
+            RL(A);
             break;
         }
 
@@ -282,7 +436,7 @@ void CPU::cb_opcodes()
             uint8_t byte = yume_boy_.read_memory(HL());
             m_cycle();
             RR(byte);
-            yume_boy_.read_memory(HL());
+            yume_boy_.write_memory(HL(), byte);
             m_cycle();
             break;
         }
@@ -292,8 +446,135 @@ void CPU::cb_opcodes()
             break;
         }
 
-        case 0x27: { // Shift the contents of register A to the left.
+        case 0x20: { // rotate the contents of register B to the left.
+            SLA(B);
+            break;
+        }
+
+        case 0x21: { // rotate the contents of register C to the left.
+            SLA(C);
+            break;
+        }
+
+        case 0x22: { // rotate the contents of register D to the left.
+            SLA(D);
+            break;
+        }
+
+        case 0x23: { // rotate the contents of register E to the left.
+            SLA(E);
+            break;
+        }
+
+        case 0x24: { // rotate the contents of register H to the left.
+            SLA(H);
+            break;
+        }
+
+        case 0x25: { // rotate the contents of register L to the left.
+            SLA(L);
+            break;
+        }
+
+        case 0x26: { // rotate the contents of memory specified by HL to the left.
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            SLA(byte);
+            yume_boy_.write_memory(HL(), byte);
+            m_cycle();
+            break;
+        }
+
+        case 0x27: { // rotate the contents of register A to the left.
             SLA(A);
+            break;
+        }
+
+        case 0x28: { // rotate the contents of register B to the right.
+            SRA(B);
+            break;
+        }
+
+        case 0x29: { // rotate the contents of register C to the right.
+            SRA(C);
+            break;
+        }
+
+        case 0x2A: { // rotate the contents of register D to the right.
+            SRA(D);
+            break;
+        }
+
+        case 0x2B: { // rotate the contents of register E to the right.
+            SRA(E);
+            break;
+        }
+
+        case 0x2C: { // rotate the contents of register H to the right.
+            SRA(H);
+            break;
+        }
+
+        case 0x2D: { // rotate the contents of register L to the right.
+            SRA(L);
+            break;
+        }
+
+        case 0x2E: { // rotate the contents of memory specified by HL to the right.
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            SRA(byte);
+            yume_boy_.write_memory(HL(), byte);
+            m_cycle();
+            break;
+        }
+
+        case 0x2F: { // rotate the contents of register A to the right.
+            SRA(A);
+            break;
+        }
+
+        case 0x30: { // shift the contents of the lower-order four bits (0-3) of register B to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
+            SWAP(B);
+            break;
+        }
+
+        case 0x31: { // shift the contents of the lower-order four bits (0-3) of register C to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
+            SWAP(C);
+            break;
+        }
+
+        case 0x32: { // shift the contents of the lower-order four bits (0-3) of register D to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
+            SWAP(D);
+            break;
+        }
+
+        case 0x33: { // shift the contents of the lower-order four bits (0-3) of register E to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
+            SWAP(E);
+            break;
+        }
+
+        case 0x34: { // shift the contents of the lower-order four bits (0-3) of register H to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
+            SWAP(H);
+            break;
+        }
+
+        case 0x35: { // shift the contents of the lower-order four bits (0-3) of register L to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
+            SWAP(L);
+            break;
+        }
+
+        case 0x36: { // rotate the contents of memory specified by HL to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            SWAP(byte);
+            yume_boy_.write_memory(HL(), byte);
+            m_cycle();
+            break;
+        }
+
+        case 0x37: { // shift the contents of the lower-order four bits (0-3) of register A to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
+            SWAP(A);
             break;
         }
 
@@ -338,15 +619,6 @@ void CPU::cb_opcodes()
 
         case 0x3F: { // Shift the contents of register A to the right.
             SRL(A);
-            break;
-        }
-
-        case 0x37: { // Shift the contents of the lower-order four bits (0-3) of register A to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.
-            A = ((A << 4) & 0b11110000) | (A >> 4);
-            z(A == 0);
-            n(false);
-            h(false);
-            c(false);
             break;
         }
 
@@ -1465,6 +1737,11 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x02: { // store the contents of register A in the memory location specified by register pair BC.
+            LD_memory(BC(), A);
+            break;
+        }
+
         case 0x03: { // increment the contents of register pair BC by 1.
             BC(BC() + 1);
             m_cycle();
@@ -1534,6 +1811,12 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x0F: { // RRCA
+            RRC(A);
+            z(false);   // unlike RRC, for some reason RRCA always sets the zero flag to false
+            break;
+        }
+
         case 0x11: { // load the 2 bytes of immediate data into register pair DE.
             uint8_t lower = fetch_byte();
             uint8_t upper = fetch_byte();
@@ -1567,8 +1850,9 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x17: { // rotate the contents of register A to the left.
+        case 0x17: { // RLA - rotate the contents of register A to the left.
             RL(A);
+            z(false);   // unlike RL, for some reason RLA always sets the zero flag to false
             break;
         }
 
@@ -1777,6 +2061,13 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0x37: { // SCF - set the carry flag CY.
+            n(false);
+            h(false);
+            c(true);
+            break;
+        }
+
         case 0x38: { // if the CY flag is 1, jump s8 steps from the current address stored in the program counter (PC).
             int8_t offset = fetch_byte();
             if (not c()) break;
@@ -1787,6 +2078,13 @@ uint32_t CPU::tick()
 
         case 0x39: { // add the contents of register pair SP to the contents of register pair HL, and store the results in register pair HL.
             ADD_HL(SP);
+            break;
+        }
+
+        case 0x3A: { // load the contents of memory specified by register pair HL into register A, and simultaneously decrement the contents of HL.
+            A = yume_boy_.read_memory(HL());
+            HL(HL() - 1);
+            m_cycle();
             break;
         }
 
@@ -1808,6 +2106,13 @@ uint32_t CPU::tick()
 
         case 0x3E: { // load the 8-bit immediate operand d8 into register A.
             A = fetch_byte();
+            break;
+        }
+
+        case 0x3F: { // CCF - flip the carry flag CY.
+            n(false);
+            h(false);
+            c(!c());
             break;
         }
 
@@ -2167,8 +2472,45 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x89: { // ADC A, C - add the contents of register C and the CY flag to the contents of register A, and store the results in register A.
+        case 0x88: { // ADC A, B - add the contents of register B and the CY flag to the contents of register A, and store the results in register A.
+            ADC(B);
+            break;
+        }
+
+        case 0x89: { // ADC A, C
             ADC(C);
+            break;
+        }
+
+        case 0x8A: { // ADC A, D
+            ADC(D);
+            break;
+        }
+
+        case 0x8B: { // ADC A, E
+            ADC(E);
+            break;
+        }
+
+        case 0x8C: { // ADC A, H
+            ADC(H);
+            break;
+        }
+
+        case 0x8D: { // ADC A, L
+            ADC(L);
+            break;
+        }
+
+        case 0x8E: { // ADC A, (HL)
+            auto mem = yume_boy_.read_memory(HL());
+            m_cycle();
+            ADC(mem);
+            break;
+        }
+
+        case 0x8F: { // ADC A, A
+            ADC(A);
             break;
         }
 
@@ -2214,12 +2556,44 @@ uint32_t CPU::tick()
             break;
         }
 
-        case 0x99: { // subtract the contents of register C and the carry flag from the contents of register A, and store the results in register A.
+        case 0x98: { // SBC A, B - subtract the contents of register B and the CY flag from the contents of register A, and store the results in register A.
+            SBC(B);
+            break;
+        }
+
+        case 0x99: { // SBC A, C
             SBC(C);
             break;
         }
 
-        case 0x9F: { // subtract the contents of register A and the carry flag from the contents of register A, and store the results in register A.
+        case 0x9A: { // SBC A, D
+            SBC(D);
+            break;
+        }
+
+        case 0x9B: { // SBC A, E
+            SBC(E);
+            break;
+        }
+
+        case 0x9C: { // SBC A, H
+            SBC(H);
+            break;
+        }
+
+        case 0x9D: { // SBC A, L
+            SBC(L);
+            break;
+        }
+
+        case 0x9E: { // SBC A, (HL)
+            auto mem = yume_boy_.read_memory(HL());
+            m_cycle();
+            SBC(mem);
+            break;
+        }
+
+        case 0x9F: { // SBC A, A
             SBC(A);
             break;
         }
@@ -2254,6 +2628,13 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xA6: { // A AND (HL)
+            uint8_t byte = yume_boy_.read_memory(HL());
+            m_cycle();
+            AND(byte);
+            break;
+        }
+
         case 0xA7: { // A AND A (effectively only sets flags)
             AND(A);
             break;
@@ -2275,12 +2656,12 @@ uint32_t CPU::tick()
         }
 
         case 0xAB: { // A XOR E
-            XOR(D);
+            XOR(E);
             break;
         }
 
         case 0xAC: { // A XOR H
-            XOR(D);
+            XOR(H);
             break;
         }
 
@@ -2516,6 +2897,16 @@ uint32_t CPU::tick()
             break;
         }
 
+        case 0xD2: { // JP NC a16 - Load the 16-bit immediate operand a16 into the program counter (PC) if the CY flag is 0. a16 specifies the address of the subsequently executed instruction.
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            auto target_addr = uint16_t((upper << 8) | lower);
+            if (c()) break;
+            PC = target_addr;
+            m_cycle();  // internal
+            break;
+        }
+
         case 0xD4: { // CALL NC a16 - If the CY flag is 0, the program counter PC value corresponding to the memory location of the instruction following the CALL instruction is pushed to the 2 bytes following the memory byte specified by the stack pointer SP. The 16-bit immediate operand a16 is then loaded into PC.
             uint8_t lower = fetch_byte();
             uint8_t upper = fetch_byte();
@@ -2553,6 +2944,29 @@ uint32_t CPU::tick()
             IME = true; // as far as I can tell RETI does not have a one-instruction delay like EI
             PC = POP();
             m_cycle();  // internal cycle
+            break;
+        }
+
+        case 0xDA: { // JP C - If the CY flag is true, Load the 16-bit immediate operand a16 into the program counter PC.
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            auto addr = uint16_t((upper << 8) | lower);
+            if (not c()) break;
+            PC = addr;
+            m_cycle();  // internal branch dicision (?)
+            break;
+        }
+
+        /* CALL C - If the CY flag is 1, the program counter PC value corresponding to the memory location of the instruction
+         * following the CALL instruction is pushed to the 2 bytes following the memory byte specified by the stack
+         * pointer SP. The 16-bit immediate operand a16 is then loaded into PC. */
+        case 0xDC: {
+            uint8_t lower = fetch_byte();
+            uint8_t upper = fetch_byte();
+            auto target_addr = uint16_t((upper << 8) | lower);
+            if (not c()) { break; }
+            PUSH(PC);
+            PC = target_addr;
             break;
         }
 
@@ -2638,6 +3052,11 @@ uint32_t CPU::tick()
 
         case 0xF1: { // pop the contents from the memory stack into register pair into register pair AF.
             AF(POP());
+            break;
+        }
+
+        case 0xF2: { // load into register A the contents of the internal RAM, port register, or mode register at the address in the range 0xFF00-0xFFFF specified by register C.
+            LD_register(A, 0xFF00 + C);
             break;
         }
 

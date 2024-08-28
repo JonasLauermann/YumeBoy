@@ -207,14 +207,20 @@ class CPU {
     void CP_register(uint8_t const &target);
     /* compare the contents of memory specified by addr and the contents of register A by calculating A - (addr), and set the Z flag if they are equal. */
     void CP_memory(uint16_t addr);
+    /* Rotate the contents of register `target` to the left. The contents of bit 7 are placed in both the CY flag and bit 0 of register `target`. */
+    void RLC(uint8_t &target);
+    /* Rotate the contents of register `target` to the right. The contents of bit 0 are placed in both the CY flag and bit 0 of register `target`. */
+    void RRC(uint8_t &target);
     /* Rotate the contents of register `target` to the left. */
     void RL(uint8_t &target);
     /* Rotate the contents of register `target` to the right. */
     void RR(uint8_t &target);
-    /* Rotate the contents of register `target` to the left. The contents of bit 7 are placed in both the CY flag and bit 0 of register `target`. */
-    void RLC(uint8_t &target);
     /* Shift the contents of register `target` to the left.  */
     void SLA(uint8_t &target);
+    /* Shift the contents of register `target` to the right.  */
+    void SRA(uint8_t &target);
+    /* Shift the contents of the lower-order four bits (0-3) of register `target` to the higher-order four bits (4-7) of the register, and shift the higher-order four bits to the lower-order four bits.  */
+    void SWAP(uint8_t &target);
     /* Shift the contents of register `target` to the right.  */
     void SRL(uint8_t &target);
     /* Test `bit` in register `source`, set the zero flag if bit not set.  */
