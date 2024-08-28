@@ -2591,10 +2591,10 @@ uint32_t CPU::tick()
         }
 
         case 0xE8: { // ADD SP, s8 - Add the contents of the 8-bit signed (2's complement) immediate operand s8 and the stack pointer SP and store the results in SP.
-            int8_t offset = fetch_byte();
-            c(SP > 0xFF - offset);
+            uint8_t offset = fetch_byte();
+            c((SP & 0xFF) > 0xFF - offset);
             h((SP & 0xF) > 0x0F - (offset & 0xF));
-            SP += offset;
+            SP += (int8_t)offset;
             m_cycle();  // internal
             m_cycle();  // write to SP
             z(false);
@@ -2657,10 +2657,10 @@ uint32_t CPU::tick()
         }
 
         case 0xF8: { // LD HL, SP+s8 - Add the 8-bit signed operand s8 (values -128 to +127) to the stack pointer SP, and store the result in register pair HL.
-            int8_t offset = fetch_byte();
-            c(SP > 0xFF - offset);
+            uint8_t offset = fetch_byte();
+            c((SP & 0xFF) > 0xFF - offset);
             h((SP & 0xF) > 0x0F - (offset & 0xF));
-            HL(SP + offset);
+            HL(SP + (int8_t)offset);
             m_cycle();  // internal
             n(false);
             z(false);
