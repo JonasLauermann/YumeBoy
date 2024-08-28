@@ -91,8 +91,10 @@ class YumeBoy {
             return hram_->read_memory(addr);
         else if (addr == 0xFFFF)
             return cpu_->IE();
-        else
-            throw std::runtime_error("Memory address out of range.");
+        else {
+            std::cerr << std::format("Address {:#04X} is read from which is undocumented! Returning 0xFF.\n", addr);
+            return 0xFF;    // https://www.reddit.com/r/EmuDev/comments/6yi3hh/game_boy_how_do_undocumented_io_registers_behave/
+        }
     }
 
     void write_memory(uint16_t addr, uint8_t value) {
@@ -143,7 +145,7 @@ class YumeBoy {
         else if (addr == 0xFFFF)
             cpu_->IE(value);
         else
-            throw std::runtime_error("Memory address out of range.");
+            std::cerr << std::format("Address {:#04X} is written to which is undocumented! Ignoring write operation.\n", addr);
     }
 
     enum class INTERRUPT : uint8_t {
