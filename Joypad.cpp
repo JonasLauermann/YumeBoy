@@ -80,6 +80,12 @@ void Joypad::update_joypad_state()
                     state_.right_dpad = event.type == SDL_KEYDOWN;
                     break;
                 
+                // DEBUG keys
+                case SDL_SCANCODE_1:
+                    if (event.type == SDL_KEYDOWN)
+                        yume_boy_.dump_tilemap();
+                    break;
+                
                 default:
                     break;
                 }
