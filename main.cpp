@@ -17,7 +17,6 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // YumeBoy yume_boy("../gb-test-roms/cpu_instrs/individual/10-bit ops.gb");
     // YumeBoy yume_boy("../gb-test-roms/cpu_instrs/individual/11-op a,(hl).gb");
     // YumeBoy yume_boy("../gb-test-roms/instr_timing/instr_timing.gb");
-    // YumeBoy yume_boy("../gb-test-roms/interrupt_time/interrupt_time.gb");
     while (true)
         yume_boy.tick();
     return 0;

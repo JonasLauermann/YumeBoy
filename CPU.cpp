@@ -1772,7 +1772,7 @@ uint32_t CPU::tick()
         case 0x08: { // Store the lower byte of stack pointer SP at the address specified by the 16-bit immediate operand a16, and store the upper byte of SP at address a16 + 1.
             uint8_t lower = fetch_byte();
             uint8_t higher = fetch_byte();
-            uint16_t addr = lower | higher << 8;
+            auto addr = uint16_t(lower | (higher << 8));
             yume_boy_.write_memory(addr, SP & 0xFF);
             m_cycle();
             yume_boy_.write_memory(addr + 1, SP >> 8);
@@ -3085,7 +3085,7 @@ uint32_t CPU::tick()
             uint8_t offset = fetch_byte();
             c((SP & 0xFF) > 0xFF - offset);
             h((SP & 0xF) > 0x0F - (offset & 0xF));
-            HL(SP + (int8_t)offset);
+            HL(uint16_t(SP + (int8_t)offset));
             m_cycle();  // internal
             n(false);
             z(false);

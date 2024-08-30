@@ -405,7 +405,6 @@ void PPU::h_blank_tick()
             assert(LY < 144);
             set_mode(OAM_Scan);
         }
-        // TODO LY == LYC interrupt
         scanline_time_ = 0;
         fifo_pushed_pixels = 0;
     }
