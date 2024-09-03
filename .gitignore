@@ -4,3 +4,4 @@ build/
 *.code-workspace
 *.log
 *.ppm
+*.bpm

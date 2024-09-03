@@ -1,12 +1,15 @@
 #pragma once
 
 #include <cstdint>
+#include <cpu/InterruptBus.hpp>
+#include <mmu/Memory.hpp>
 
 
 class YumeBoy;
 
-class Joypad {
+class Joypad : public Memory {
     YumeBoy &yume_boy_;         // Reference to Emulator
+    InterruptBus &interrupts;
 
     struct JoypadState {
         // "selection" output pins
@@ -27,11 +30,6 @@ class Joypad {
     };
     JoypadState state_;
 
-    public:
-    Joypad() = delete;
-    explicit Joypad(YumeBoy &yume_boy) : yume_boy_(yume_boy) { }
-
-
     /* 0xFF00 — P1/JOYP: Joypad
         The eight Game Boy action/direction buttons are arranged as a 2×4 matrix. Select either action or direction buttons by writing to this register, then read out the bits 0-3.
         Bit 5 - P15 Select Button Keys (0=Select)
@@ -43,6 +41,24 @@ class Joypad {
         Bits 6 and 7 always return 1. */
     uint8_t P1() const;
     void P1(uint8_t value);
+
+    public:
+    Joypad() = delete;
+    explicit Joypad(YumeBoy &yume_boy, InterruptBus &interrupts) : yume_boy_(yume_boy), interrupts(interrupts) { }
+
+    bool contains_address(uint16_t addr) const override {
+        return addr == 0xFF00;
+    }
+
+    uint8_t read_memory(uint16_t addr) override {
+        assert(addr = 0xFF00);
+        return P1();
+    }
+
+    void write_memory(uint16_t addr, uint8_t value) override {
+        assert(addr = 0xFF00);
+        P1(value);
+    }
 
     /* Handles `SDL_Event`s and updates P1 accrodingly and requests Interrupts if necessary. */
     void update_joypad_state();

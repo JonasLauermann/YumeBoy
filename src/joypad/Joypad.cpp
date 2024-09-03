@@ -1,4 +1,4 @@
-#include "Joypad.hpp"
+#include "joypad/Joypad.hpp"
 
 #include "YumeBoy.hpp"
 #include "SDL_events.h"
@@ -30,7 +30,7 @@ void Joypad::P1(uint8_t value)
     P1_ = P1();
     bool new_combined_input_lines = (P1_ & 0b1000) and (P1_ & 0b0100) and (P1_ & 0b0010) and (P1_ & 0b0001);
     if (old_combined_input_lines and not new_combined_input_lines)
-        yume_boy_.request_interrupt(YumeBoy::INTERRUPT::JOYPAD_INTERRUPT);
+        interrupts.request_interrupt(InterruptBus::INTERRUPT::JOYPAD_INTERRUPT);
 }
 
 void Joypad::update_joypad_state()
@@ -80,11 +80,17 @@ void Joypad::update_joypad_state()
                     state_.right_dpad = event.type == SDL_KEYDOWN;
                     break;
                 
-                // DEBUG keys
+#ifndef NDEBUG
                 case SDL_SCANCODE_1:
                     if (event.type == SDL_KEYDOWN)
                         yume_boy_.dump_tilemap();
                     break;
+                    
+                case SDL_SCANCODE_2:
+                    if (event.type == SDL_KEYDOWN)
+                        yume_boy_.screenshot();
+                    break;
+#endif
                 
                 default:
                     break;
@@ -92,7 +98,7 @@ void Joypad::update_joypad_state()
                 // Falling edge detector
                 P1_ = P1();
                 if (bool new_combined_input_lines = (P1_ & 0b1000) and (P1_ & 0b0100) and (P1_ & 0b0010) and (P1_ & 0b0001); old_combined_input_lines and not new_combined_input_lines)
-                    yume_boy_.request_interrupt(YumeBoy::INTERRUPT::JOYPAD_INTERRUPT);
+                    interrupts.request_interrupt(InterruptBus::INTERRUPT::JOYPAD_INTERRUPT);
                 break;
             }
 

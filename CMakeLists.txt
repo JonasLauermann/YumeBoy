@@ -3,6 +3,12 @@ project(YumeBoy)
 
 set(CMAKE_CXX_STANDARD 23)
 
+# Configure release builds
+if(${is_release_build})
+    add_compile_definitions(NDEBUG) # set NDEBUG macro
+    add_compile_options(-O2)
+endif()
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/W4)
     # There's no direct equivalent of `-Wunreachable-code` in MSVC,
@@ -16,11 +22,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 
 # Find SDL2
 find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
 
-add_executable(YumeBoy main.cpp
-        CPU.cpp
-        Cartridge.cpp
-        MemoryStub.hpp
-        PPU.cpp
-        Joypad.cpp)
-target_link_libraries(YumeBoy SDL2::SDL2 SDL2::SDL2main)
+# Include directories
+include_directories(include src)
+
+# Subdirectories
+add_subdirectory(src)

@@ -8,7 +8,10 @@
 #include <queue>
 #include <stdexcept>
 #include <vector>
-#include <SDL.h>
+#include <cpu/InterruptBus.hpp>
+#include "ppu/PixelFetcher.hpp"
+#include "ppu/states.hpp"
+#include "mmu/Memory.hpp"
 
 constexpr uint16_t VRAM_BEGIN = 0x8000;
 constexpr uint16_t VRAM_END = 0x9FFF;
@@ -17,15 +20,27 @@ constexpr uint16_t OAM_RAM_END = 0xFE9F;
 constexpr uint16_t LCD_REG_BEGIN = 0xFF40;
 constexpr uint16_t LCD_REG_END = 0xFF4B;
 
-constexpr uint8_t DISPLAY_WIDTH = 160;
-constexpr uint8_t DISPLAY_HEIGHT = 144;
-
 class YumeBoy;
+class LCD;
+
+struct OAM_entry {
+    uint8_t y;
+    uint8_t x;
+    uint8_t tile_id;
+    uint8_t flags;
+};
 
 /** The Pixel-Processing Unit. It handles anything related to drawing the frames of games. */
-class PPU {
-    YumeBoy &yume_boy_;         // Reference to Emulator
-    uint32_t tick_time_;        // the amount of time the ppu has run for this tick (in T-cycles / 2^22 Hz)
+class PPU : public Memory {
+    friend PixelFetcher;
+    
+    LCD &lcd;
+
+    MMU &mem;
+    InterruptBus &interrupts;
+    
+    PPU_STATES state = PPU_STATES::VBlank;  // current Mode of the PPU
+
     uint32_t scanline_time_ = 0;    // the amount of time the ppu has run for this scanline (in T-cycles / 2^22 Hz)
 
     std::vector<uint8_t> vram_;
@@ -63,9 +78,6 @@ class PPU {
      * The Game Boy constantly compares the value of the LYC and LY registers. When both values are identical,
      * the “LYC=LY” flag in the STAT register is set, and (if enabled) a STAT interrupt is requested. */
     uint8_t LYC = 0x0;
-    /** 0xFF46 — DMA: OAM DMA source address & start.
-     * Writing to this register starts a DMA transfer from ROM or RAM to OAM (Object Attribute Memory). */
-    uint8_t DMA = 0x0;
     /** 0xFF47 — BGP (Non-CGB Mode only): BG palette data.
      * This register assigns gray shades to the color IDs of the BG and Window tiles. */
     uint8_t BGP = 0x0;
@@ -82,141 +94,23 @@ class PPU {
     /** 0xFF4B — WX: Window X position plus 7. (WX=7-166) */
     uint8_t WX = 0x0;
 
-    class LCD {
-        using pixel_buffer_t = std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT * 4>;
-
-        struct sdl_deleter
-        {
-            void operator()(SDL_Window *p) const { SDL_DestroyWindow(p); }
-            void operator()(SDL_Renderer *p) const { SDL_DestroyRenderer(p); }
-            void operator()(SDL_Texture *p) const { SDL_DestroyTexture(p); }
-        };
-
-        std::unique_ptr<SDL_Window, sdl_deleter> window;
-        std::unique_ptr<SDL_Renderer, sdl_deleter> renderer;
-        std::unique_ptr<SDL_Texture, sdl_deleter> pixel_matrix_texture;
-        pixel_buffer_t pixel_buffer;
-        pixel_buffer_t::iterator buffer_it;
-
-        bool power_ = false;
-
-        public:
-        enum class Color : uint8_t {
-            WHITE = 0,
-            LIGHT_GRAY = 1,
-            DARK_GRAY = 2,
-            BLACK = 3
-        };
-
-        LCD([[maybe_unused]] const char *title, [[maybe_unused]] int width, [[maybe_unused]] int height) : buffer_it(pixel_buffer.begin()) {
-            window = std::unique_ptr<SDL_Window, sdl_deleter>(SDL_CreateWindow("YumeBoy", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4, 0), sdl_deleter());
-            renderer = std::unique_ptr<SDL_Renderer, sdl_deleter>(SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED), sdl_deleter());
-            pixel_matrix_texture =  std::unique_ptr<SDL_Texture, sdl_deleter>(SDL_CreateTexture(renderer.get(), SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, DISPLAY_WIDTH, DISPLAY_HEIGHT), sdl_deleter());
-        }
-
-        void power(bool on) { power_ = on; }
-
-        void push_pixel(Color c);
-
-        void update_screen();
-
-    };
-    LCD lcd = LCD("YumeBoy", DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4);
-
-
-    /* one ppu cycle (called "dot") takes one T-cycles (2^22 Hz) */
-    void dot(uint8_t cycles = 1) {
-        tick_time_ += cycles;
-        scanline_time_ += cycles;
-    }
-
-    enum PPU_Mode : uint8_t { H_Blank = 0, V_Blank = 1, OAM_Scan = 2, Pixel_Transfer = 3 };
-    PPU_Mode mode_ = V_Blank;  // current Mode of the PPU
-
-    void set_mode(PPU_Mode mode);
+    void set_mode(PPU_STATES new_state);
 
     /* OAM specific */
     uint16_t oam_pointer = OAM_RAM_BEGIN;
+    std::vector<std::unique_ptr<OAM_entry>> scanline_sprites;
 
-    struct OAM_entry {
-        uint8_t y;
-        uint8_t x;
-        uint8_t tile_id;
-        uint8_t flags;
-    };
-
-    std::vector<OAM_entry> scanline_sprites;
-
-    /* Pixel FIFO & Fetcher */
-    enum ColorPallet {BG, S0, S1};
-    struct Pixel {
-        uint8_t color;
-        ColorPallet pallet;
-        bool bg_priority;
-    };
-
+    /* Pixel FIFO and Fetcher */
     std::queue<Pixel> BG_FIFO;
     std::queue<Pixel> Sprite_FIFO;
-
-    bool pixel_fifo_stopped = false;
     uint8_t fifo_pushed_pixels = 0; // current x position of the pixel fifo
-
-    class PixelFetcher {
-        uint8_t fetcher_x = 0;   // fetcher internal coordinates
-        uint8_t step = 0;
-        bool fetch_sprite_ = false;
-        bool fetch_window = false;
-        PPU &p;
-
-        OAM_entry oam_entry;
-
-        uint8_t tile_id;
-        uint8_t low_data;
-        uint8_t high_data;
-
-        public:
-        explicit PixelFetcher(PPU &ppu) : p(ppu) { }
-
-        void bg_tick();
-
-        void sprite_tick();
-
-        void tick() {
-            if (fetch_sprite_)
-                sprite_tick();
-            else
-                bg_tick();
-        }
-
-        void fetch_sprite(OAM_entry entry);
-
-        void reset();
-
-    };
     PixelFetcher fetcher;
 
     /* Increment LY and update STAT register */
     void next_scanline();
 
     /* Returns true if a STAT interrupt should be requested */
-    bool STATE_interrupt_signal();
-
-    /* Performs OAM DMA Transfer */
-    void OAM_transfer();
-
-public:
-    PPU() = delete;
-    explicit PPU(YumeBoy &yume_boy) : yume_boy_(yume_boy), fetcher(*this) {
-        vram_.resize(VRAM_END - VRAM_BEGIN + 1, 0);
-        oam_ram_.resize(OAM_RAM_END - OAM_RAM_BEGIN + 1, 0);
-        
-        SDL_Init(SDL_INIT_VIDEO);
-        set_mode(OAM_Scan);
-    }
-
-    ~PPU() {
-        SDL_Quit();
-    }
+    bool STATE_interrupt_signal() const;
 
     uint8_t read_vram(uint16_t addr);
     void write_vram(uint16_t addr, uint8_t value);
@@ -227,11 +121,24 @@ public:
     uint8_t read_lcd_register(uint16_t addr) const;
     void write_lcd_register(uint16_t addr, uint8_t value);
 
+public:
+    PPU() = delete;
+    explicit PPU(LCD &lcd, MMU &mem, InterruptBus &interrupts) : lcd(lcd), mem(mem), interrupts(interrupts), fetcher(*this) {
+        vram_.resize(VRAM_END - VRAM_BEGIN + 1, 0);
+        oam_ram_.resize(OAM_RAM_END - OAM_RAM_BEGIN + 1, 0);
+        
+        set_mode(PPU_STATES::OAMScan);
+    }
+
+    bool contains_address(uint16_t addr) const override;
+    uint8_t read_memory(uint16_t addr) override;
+    void write_memory(uint16_t addr, uint8_t value) override;
+
     void h_blank_tick();
     void v_blank_tick();
     void oam_scan_tick();
     void pixel_transfer_tick();
 
-    /* Runs the PPU until it reaches the next "stable" state. Returns the amount of time spent. */
-    uint32_t tick();
+    /* Runs the PPU for a single T-Cycle. */
+    void tick();
 };
