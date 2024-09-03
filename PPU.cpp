@@ -548,6 +548,7 @@ void PPU::pixel_transfer_tick()
     }
 }
 
+// TODO: rewrite PPU as state machine to allow for t-cycle precision
 uint32_t PPU::tick() {
     // skip if LCD is turned off
     if (not (LCDC & 1 << 7)) return 1;

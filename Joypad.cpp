@@ -3,16 +3,16 @@
 #include "YumeBoy.hpp"
 #include "SDL_events.h"
 
-uint8_t Joypad::P1()
+uint8_t Joypad::P1() const
 {
     uint8_t inv_P1 = 0;
-    inv_P1 |= (state_.select_dpad << 5) + (state_.select_buttons << 4);
+    inv_P1 |= (uint8_t(state_.select_dpad) << 5) + (uint8_t(state_.select_buttons) << 4);
     
     if (state_.select_dpad)
-        inv_P1 |= (state_.down_dpad << 3) + (state_.up_dpad << 2) + (state_.left_dpad << 1) + state_.right_dpad;
+        inv_P1 |= (uint8_t(state_.down_dpad) << 3) + (uint8_t(state_.up_dpad) << 2) + (uint8_t(state_.left_dpad) << 1) + uint8_t(state_.right_dpad);
 
     if (state_.select_buttons)
-        inv_P1 |= (state_.start_button << 3) + (state_.select_button << 2) + (state_.b_button << 1) + state_.a_button;
+        inv_P1 |= (uint8_t(state_.start_button) << 3) + (uint8_t(state_.select_button) << 2) + (uint8_t(state_.b_button) << 1) + uint8_t(state_.a_button);
 
     return ~inv_P1;
 }

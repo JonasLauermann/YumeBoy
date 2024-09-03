@@ -1669,7 +1669,7 @@ void CPU::cb_opcodes()
     }
 }
 
-
+// TODO: rewrite CPU as state machine to allow for t-cycle precision
 uint32_t CPU::tick()
 {
     /* set time of current tick to 0. */

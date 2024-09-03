@@ -152,6 +152,25 @@ struct CartridgeFactory
         uint8_t ram_size = rom_bytes[0x149];
         assert(rom_size <= 8);
         assert(ram_size <= 5);
+        assert(fileSize == 1 << (15 + rom_size));
+        
+            
+        // Allocate memory_ for the RAM byte array
+        uint8_t shift = 0;
+        switch (ram_size)
+        {
+        case 0x04:
+            shift += 1;
+        case 0x05:
+            shift += 1;
+        case 0x03:
+            shift += 2;
+        case 0x02:
+            shift += 13;
+        default:
+            break;
+        }
+        std::vector<uint8_t> ram_bytes(1 << shift, 0x00);
 
         switch (cartridge_type)
         {
@@ -166,6 +185,13 @@ struct CartridgeFactory
             assert(rom_size < 0x07);
             assert(ram_size == 0x00);
             return std::make_unique<MBC1<false>>(std::move(rom_bytes), cartridge_type, rom_size);
+
+        case 0x02: { // MBC1 + RAM
+            assert(rom_bytes.size() == 1ULL << (15 + rom_size));
+            assert((rom_size < 0x05 and ram_size < 0x04) or (rom_size < 0x07 and ram_size < 0x03));
+
+            return std::make_unique<MBC1<false>>(std::move(rom_bytes), std::move(ram_bytes), cartridge_type, rom_size, ram_size);
+        }
 
         default:
             throw std::runtime_error(std::format("Unknown Cartridge Type {:X}!", cartridge_type));
