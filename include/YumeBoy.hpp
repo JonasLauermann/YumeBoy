@@ -65,7 +65,11 @@ class YumeBoy {
         link_cable_ = std::make_unique<MemorySTUB>("Serial Data Transfer (Link Cable)", 0xFF01, 0xFF02);
         mmu_->add(link_cable_.get());
 
+#ifndef NDEBUG
         joypad_ = std::make_unique<Joypad>(*this, *interrupts_);
+#else
+        joypad_ = std::make_unique<Joypad>(*interrupts_);
+#endif
         mmu_->add(joypad_.get());
 
         timer_ = std::make_unique<Timer>(*interrupts_);
