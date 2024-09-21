@@ -2,7 +2,7 @@
 
 #include <array>
 #include <memory>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 class LCD {
     public:
@@ -38,9 +38,11 @@ class LCD {
     LCD([[maybe_unused]] const char *title, [[maybe_unused]] int width, [[maybe_unused]] int height) : buffer_it(pixel_buffer.begin()) {
         SDL_Init(SDL_INIT_VIDEO);
 
-        window = std::unique_ptr<SDL_Window, sdl_deleter>(SDL_CreateWindow("YumeBoy", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4, 0), sdl_deleter());
-        renderer = std::unique_ptr<SDL_Renderer, sdl_deleter>(SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED), sdl_deleter());
+        window = std::unique_ptr<SDL_Window, sdl_deleter>(SDL_CreateWindow("YumeBoy", DISPLAY_WIDTH * 4, DISPLAY_HEIGHT * 4, SDL_WINDOW_BORDERLESS), sdl_deleter());
+        renderer = std::unique_ptr<SDL_Renderer, sdl_deleter>(SDL_CreateRenderer(window.get(), nullptr), sdl_deleter());
         pixel_matrix_texture =  std::unique_ptr<SDL_Texture, sdl_deleter>(SDL_CreateTexture(renderer.get(), SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STREAMING, DISPLAY_WIDTH, DISPLAY_HEIGHT), sdl_deleter());
+        /* use nearest pixel scaling mode for a pixel perfect image */
+        SDL_SetTextureScaleMode(pixel_matrix_texture.get(), SDL_SCALEMODE_NEAREST);
     }
 
     void power(bool on) { power_ = on; }

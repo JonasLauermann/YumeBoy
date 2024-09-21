@@ -1,6 +1,5 @@
 #include "YumeBoy.hpp"
 
-#include <SDL.h>
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     std::string rom_path = "../Tetris (World) (Rev 1).gb";

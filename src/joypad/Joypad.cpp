@@ -1,7 +1,7 @@
 #include "joypad/Joypad.hpp"
 
 #include "YumeBoy.hpp"
-#include "SDL_events.h"
+#include "SDL3/SDL_events.h"
 
 uint8_t Joypad::P1() const
 {
@@ -41,56 +41,60 @@ void Joypad::update_joypad_state()
     {
         switch (event.type)
         {
-            case SDL_KEYDOWN:
-            case SDL_KEYUP: {
+            case SDL_EVENT_KEY_DOWN: {
+                
+                switch (event.key.scancode)
+                {
+#ifndef NDEBUG
+                case SDL_SCANCODE_1:
+                    yume_boy_.dump_tilemap();
+                    break;
+                
+                case SDL_SCANCODE_2:
+                    yume_boy_.screenshot();
+                    break;
+#endif
+                default:
+                    break;
+                }
+            } // do not break in outer switch block
+            case SDL_EVENT_KEY_UP: {
                 uint8_t P1_ = P1();
                 bool old_combined_input_lines = (P1_ & 0b1000) and (P1_ & 0b0100) and (P1_ & 0b0010) and (P1_ & 0b0001);
 
-                switch (event.key.keysym.scancode)
+                switch (event.key.scancode)
                 {
                 case SDL_SCANCODE_Z:
-                    state_.b_button = event.type == SDL_KEYDOWN;
+                    state_.b_button = event.type == SDL_EVENT_KEY_DOWN;
                     break;
                 
                 case SDL_SCANCODE_X:
-                    state_.a_button = event.type == SDL_KEYDOWN;
+                    state_.a_button = event.type == SDL_EVENT_KEY_DOWN;
                     break;
                 
                 case SDL_SCANCODE_RETURN:
-                    state_.start_button = event.type == SDL_KEYDOWN;
+                    state_.start_button = event.type == SDL_EVENT_KEY_DOWN;
                     break;
                 
                 case SDL_SCANCODE_BACKSPACE:
-                    state_.select_button = event.type == SDL_KEYDOWN;
+                    state_.select_button = event.type == SDL_EVENT_KEY_DOWN;
                     break;
                 
                 case SDL_SCANCODE_DOWN:
-                    state_.down_dpad = event.type == SDL_KEYDOWN;
+                    state_.down_dpad = event.type == SDL_EVENT_KEY_DOWN;
                     break;
                 
                 case SDL_SCANCODE_UP:
-                    state_.up_dpad = event.type == SDL_KEYDOWN;
+                    state_.up_dpad = event.type == SDL_EVENT_KEY_DOWN;
                     break;
                 
                 case SDL_SCANCODE_LEFT:
-                    state_.left_dpad = event.type == SDL_KEYDOWN;
+                    state_.left_dpad = event.type == SDL_EVENT_KEY_DOWN;
                     break;
                 
                 case SDL_SCANCODE_RIGHT:
-                    state_.right_dpad = event.type == SDL_KEYDOWN;
+                    state_.right_dpad = event.type == SDL_EVENT_KEY_DOWN;
                     break;
-                
-#ifndef NDEBUG
-                case SDL_SCANCODE_1:
-                    if (event.type == SDL_KEYDOWN)
-                        yume_boy_.dump_tilemap();
-                    break;
-                    
-                case SDL_SCANCODE_2:
-                    if (event.type == SDL_KEYDOWN)
-                        yume_boy_.screenshot();
-                    break;
-#endif
                 
                 default:
                     break;

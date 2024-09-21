@@ -20,9 +20,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 
-# Find SDL2
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
+# Add SDL3
+add_subdirectory(third-party/SDL3)
+include_directories(third-party/SDL3/include)
 
 # Include directories
 include_directories(include src)

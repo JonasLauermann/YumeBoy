@@ -56,7 +56,7 @@ void LCD::update_screen()
     {
         SDL_UpdateTexture(pixel_matrix_texture.get(), nullptr, std::vector<uint8_t>(255).data(), DISPLAY_WIDTH * sizeof(uint8_t) * 4);
     }
-    SDL_RenderCopy(renderer.get(), pixel_matrix_texture.get(), nullptr, nullptr);
+    SDL_RenderTexture(renderer.get(), pixel_matrix_texture.get(), nullptr, nullptr);
     SDL_RenderPresent(renderer.get());
 
     buffer_it = pixel_buffer.begin();
@@ -64,8 +64,10 @@ void LCD::update_screen()
 
 #ifndef NDEBUG
 bool LCD::screenshot(const char* fileName) const {
-    int width, height;
-    SDL_QueryTexture(pixel_matrix_texture.get(), nullptr, nullptr, &width, &height);
+    float width_f, height_f;
+    SDL_GetTextureSize(pixel_matrix_texture.get(), &width_f, &height_f);
+    auto width = (int)width_f;
+    auto height = (int)height_f;
 
     // Create a target texture that allows rendering
     SDL_Texture* renderableTexture = SDL_CreateTexture(renderer.get(), SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_TARGET, width, height);
@@ -75,31 +77,23 @@ bool LCD::screenshot(const char* fileName) const {
     }
 
     // Set the target texture as the rendering target
-    if (SDL_SetRenderTarget(renderer.get(), renderableTexture) != 0) {
+    if (not SDL_SetRenderTarget(renderer.get(), renderableTexture)) {
         std::cerr << "Failed to set render target: " << SDL_GetError() << std::endl;
         SDL_DestroyTexture(renderableTexture);
         return false;
     }
 
     // Copy the streaming texture to the renderable target texture
-    if (SDL_RenderCopy(renderer.get(), pixel_matrix_texture.get(), nullptr, nullptr) != 0) {
+    if (not SDL_RenderTexture(renderer.get(), pixel_matrix_texture.get(), nullptr, nullptr)) {
         std::cerr << "Failed to copy texture: " << SDL_GetError() << std::endl;
         SDL_DestroyTexture(renderableTexture);
         return false;
     }
 
-    // Create a surface to hold the pixel data
-    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, width, height, 32, SDL_PIXELFORMAT_ARGB8888);
-    if (!surface) {
-        std::cerr << "Failed to create surface: " << SDL_GetError() << std::endl;
-        SDL_DestroyTexture(renderableTexture);
-        return false;
-    }
-
     // Read pixels from the renderable target texture
-    if (SDL_RenderReadPixels(renderer.get(), nullptr, surface->format->format, surface->pixels, surface->pitch) != 0) {
+    SDL_Surface* surface = SDL_RenderReadPixels(renderer.get(), nullptr);
+    if (not surface) {
         std::cerr << "Failed to read pixels: " << SDL_GetError() << std::endl;
-        SDL_FreeSurface(surface);
         SDL_DestroyTexture(renderableTexture);
         return false;
     }
@@ -110,7 +104,7 @@ bool LCD::screenshot(const char* fileName) const {
     }
 
     // Clean up
-    SDL_FreeSurface(surface);
+    SDL_DestroySurface(surface);
     SDL_DestroyTexture(renderableTexture);
 
     // Reset the rendering target back to the default (usually the window)

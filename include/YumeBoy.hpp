@@ -11,7 +11,6 @@
 #include "ppu/PPU.hpp"
 #include "joypad/Joypad.hpp"
 #include "timer/Timer.hpp"
-#include <SDL.h>
 #include <memory>
 
 
