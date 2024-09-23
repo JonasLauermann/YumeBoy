@@ -8,6 +8,7 @@ class LCD {
     public:
     static const uint8_t DISPLAY_WIDTH = 160;
     static const uint8_t DISPLAY_HEIGHT = 144;
+    static constexpr uint64_t FRAME_NS = 16740000;  // number of nanoseconds between frames
 
     private:
     using pixel_buffer_t = std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT * 4>;
@@ -26,6 +27,8 @@ class LCD {
     pixel_buffer_t::iterator buffer_it;
 
     bool power_ = false;
+
+    uint64_t next_frame = FRAME_NS;   // time until the next frame should be rendered, time given in nanoseconds
 
     public:
     enum class Color : uint8_t {

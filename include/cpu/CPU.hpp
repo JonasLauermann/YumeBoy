@@ -5,6 +5,7 @@
 #include "cpu/instructions/Instruction.hpp"
 #include "cpu/states.hpp"
 #include "mmu/Memory.hpp"
+#include "mmu/MMU.hpp"
 
 
 class YumeBoy;

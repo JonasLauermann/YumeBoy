@@ -60,6 +60,12 @@ void LCD::update_screen()
     SDL_RenderPresent(renderer.get());
 
     buffer_it = pixel_buffer.begin();
+
+    // check if the next frame should be rendered or if the thread should sleep
+    if (SDL_GetTicksNS() < next_frame) {
+        SDL_DelayNS(next_frame - SDL_GetTicksNS());
+    }
+    next_frame = SDL_GetTicksNS() + FRAME_NS;
 }
 
 #ifndef NDEBUG
