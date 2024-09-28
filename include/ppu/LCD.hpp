@@ -4,15 +4,18 @@
 #include <memory>
 #include <SDL3/SDL.h>
 
+
+struct LCDSaveState;
+
 class LCD {
     public:
     static const uint8_t DISPLAY_WIDTH = 160;
     static const uint8_t DISPLAY_HEIGHT = 144;
     static constexpr uint64_t FRAME_NS = 16740000;  // number of nanoseconds between frames
 
-    private:
     using pixel_buffer_t = std::array<uint8_t, DISPLAY_WIDTH * DISPLAY_HEIGHT * 4>;
 
+    private:
     struct sdl_deleter
     {
         void operator()(SDL_Window *p) const { SDL_DestroyWindow(p); }
@@ -53,6 +56,10 @@ class LCD {
     void push_pixel(Color c);
 
     void update_screen();
+
+    LCDSaveState save_state();
+
+    void load_state(LCDSaveState state);
     
 #ifndef NDEBUG
     bool screenshot(const char* fileName) const;

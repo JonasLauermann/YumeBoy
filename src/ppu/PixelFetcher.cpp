@@ -1,6 +1,7 @@
 #include "ppu/PixelFetcher.hpp"
 
 #include "ppu/PPU.hpp"
+#include <savestate/PixelFetcherSaveState.hpp>
 
 
 void PixelFetcher::tick()
@@ -133,4 +134,39 @@ void PixelFetcher::reset()
     low_data = 0;
     high_data = 0;
     pixel_fifo_stopped = false;
+}
+
+PixelFetcherSaveState PixelFetcher::save_state() const {
+    OAMEntrySaveState oamess = oam_entry ? oam_entry->save_state() : OAMEntrySaveState{0, 0, 0, 0};
+    PixelFetcherSaveState s = {
+        state,
+
+        fetcher_x,
+        fetch_window,
+
+        oamess,
+
+        tile_id,
+        low_data,
+        high_data,
+
+        pixel_fifo_stopped,
+    };
+    return s;
+}
+
+void PixelFetcher::load_state(PixelFetcherSaveState fetcher_state)
+{
+    state = fetcher_state.state;
+
+    fetcher_x = fetcher_state.fetcher_x;
+    fetch_window = fetcher_state.fetch_window;
+    
+    oam_entry = OAM_entry::load_state(fetcher_state.oam_entry);
+
+    tile_id = fetcher_state.tile_id;
+    low_data = fetcher_state.low_data;
+    high_data = fetcher_state.high_data;
+
+    pixel_fifo_stopped = fetcher_state.pixel_fifo_stopped;
 }

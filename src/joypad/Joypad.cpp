@@ -2,6 +2,7 @@
 
 #include "YumeBoy.hpp"
 #include "SDL3/SDL_events.h"
+#include <savestate/JoypadSaveState.hpp>
 
 uint8_t Joypad::P1() const
 {
@@ -52,6 +53,14 @@ void Joypad::update_joypad_state()
                 
                 case SDL_SCANCODE_2:
                     yume_boy_.screenshot();
+                    break;
+                
+                case SDL_SCANCODE_3:
+                    yume_boy_.save_state();
+                    break;
+                
+                case SDL_SCANCODE_4:
+                    yume_boy_.load_state();
                     break;
 #endif
                 default:
@@ -110,4 +119,38 @@ void Joypad::update_joypad_state()
                 break;
         }
     }
+}
+
+JoypadSaveState Joypad::save_state() const {
+    JoypadSaveState s = {
+        state_.select_buttons,
+        state_.select_dpad,
+        
+        state_.start_button,
+        state_.select_button,
+        state_.b_button,
+        state_.a_button,
+        
+        state_.down_dpad,
+        state_.up_dpad,
+        state_.left_dpad,
+        state_.right_dpad,
+    };
+    return s;
+}
+
+void Joypad::load_state(JoypadSaveState state)
+{
+        state_.select_buttons   = state.select_buttons;
+        state_.select_dpad      = state.select_dpad;
+
+        state_.start_button     = state.start_button;
+        state_.select_button    = state.select_button;
+        state_.b_button         = state.b_button;
+        state_.a_button         = state.a_button;
+
+        state_.down_dpad        = state.down_dpad;
+        state_.up_dpad          = state.up_dpad;
+        state_.left_dpad        = state.left_dpad;
+        state_.right_dpad       = state.right_dpad;
 }

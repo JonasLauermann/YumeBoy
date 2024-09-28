@@ -1,6 +1,8 @@
 #include "ppu/PPU.hpp"
 
 #include "YumeBoy.hpp"
+#include <savestate/PPUSaveState.hpp>
+#include <savestate/OAMEntrySaveState.hpp>
 
 void PPU::set_mode(PPU_STATES new_state)
 {
@@ -406,4 +408,73 @@ void PPU::write_memory(uint16_t addr, uint8_t value)
         return write_lcd_register(addr, value);
     else
         std::unreachable();
+}
+
+PPUSaveState PPU::save_state() const {
+    PPUSaveState s = {
+        state,
+        scanline_time_,
+
+        vram_,
+        oam_ram_,
+
+        LCDC,
+        STAT,
+        SCY,
+        SCX,
+        LY,
+        LYC,
+        BGP,
+        OBP0,
+        WY,
+        WX,
+
+        oam_pointer,
+        BG_FIFO,
+        Sprite_FIFO,
+        fifo_pushed_pixels,
+        fetcher.save_state(),
+    };
+    return s;
+}
+
+void PPU::load_state(PPUSaveState ppu_state) {
+    state = ppu_state.state;
+
+    scanline_time_ = ppu_state.scanline_time_;
+
+    vram_ = ppu_state.vram_;
+    oam_ram_ = ppu_state.oam_ram_;
+
+    LCDC = ppu_state.LCDC;
+    STAT = ppu_state.STAT;
+    SCY = ppu_state.SCY;
+    SCX = ppu_state.SCX;
+    LY = ppu_state.LY;
+    LYC = ppu_state.LYC;
+    BGP = ppu_state.BGP;
+    OBP0 = ppu_state.OBP0;
+    WY = ppu_state.WY;
+    WX = ppu_state.WX;
+
+    oam_pointer = ppu_state.oam_pointer;
+    BG_FIFO = ppu_state.BG_FIFO;
+    Sprite_FIFO = ppu_state.Sprite_FIFO;
+    fifo_pushed_pixels = ppu_state.fifo_pushed_pixels;
+    fetcher.load_state(ppu_state.fetcher);
+}
+    
+OAMEntrySaveState OAM_entry::save_state() const {
+    OAMEntrySaveState s = {
+        y,
+        x,
+        tile_id,
+        flags,
+    };
+    return s;
+}
+
+std::unique_ptr<OAM_entry> OAM_entry::load_state(OAMEntrySaveState state)
+{
+    return std::make_unique<OAM_entry>(state.y, state.x, state.tile_id, state.flags);
 }

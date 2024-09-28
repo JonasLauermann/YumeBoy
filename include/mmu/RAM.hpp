@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include "mmu/Memory.hpp"
+#include <savestate/RAMSaveState.hpp>
 
 
 class RAM : public Memory {
@@ -31,5 +32,20 @@ class RAM : public Memory {
     {
         assert(begin_memory_range_ <= addr and addr <= end_memory_range_);
         memory_[addr - begin_memory_range_] = value;
+    }
+
+    RAMSaveState save_state() {
+        RAMSaveState s = {
+            memory_,
+            begin_memory_range_,
+            end_memory_range_,
+        };
+        return s;
+    }
+
+    void load_state(RAMSaveState state) {
+        memory_ = state.memory_;
+        assert(begin_memory_range_ == state.begin_memory_range_);
+        assert(end_memory_range_ == state.end_memory_range_);
     }
 };

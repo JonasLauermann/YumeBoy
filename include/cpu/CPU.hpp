@@ -10,6 +10,7 @@
 
 class YumeBoy;
 class InterruptBus;
+struct CPUSaveState;
 
 class CPU : public Memory {
     friend InterruptBus;
@@ -158,5 +159,9 @@ class CPU : public Memory {
         else
             std::unreachable();
     }
+
+    CPUSaveState save_state() const;
+
+    void load_state(CPUSaveState cpu_state);
 
 };

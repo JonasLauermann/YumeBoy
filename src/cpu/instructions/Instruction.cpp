@@ -4,11 +4,12 @@
 #include <cstdint>
 #include <utility>
 #include "YumeBoy.hpp"
+#include <savestate/InstructionSaveState.hpp>
 
 
 #define INSTRUCTION(op, name, _) \
 case op: { \
-    instruction = std::make_unique<name>(cpu, mem); \
+    instruction = std::make_unique<name>(cpu, mem, extended); \
     break; \
 }
 std::unique_ptr<Instruction> Instruction::Get(uint8_t opcode, bool extended, CPU &cpu, MMU& mem)
@@ -4591,4 +4592,36 @@ bool SET_7_$HL$::execute() {
 /* 0xCBFF - SET 7 A */
 bool SET_7_A::execute() {
     return SET(7, cpu().A);
+}
+
+
+InstructionSaveState Instruction::save_state() {
+    InstructionSaveState s = {
+        opcode_,
+        extended_,
+    };
+    return s;
+}
+
+InstructionSaveState MultiCycleInstruction::save_state()
+{
+    InstructionSaveState s = {
+        opcode(),
+        extended(),
+        cycle_,
+        temp_u8,
+        temp_u16,
+    };
+    return s;
+}
+
+std::unique_ptr<Instruction> Instruction::load_state(InstructionSaveState state, CPU &cpu, MMU& mem)
+{
+    auto instr = Get(state.opcode, state.extended, cpu, mem);
+    if (auto mc_instr = dynamic_cast<MultiCycleInstruction*>(instr.get())) {
+        mc_instr->cycle_ = state.cycle;
+        mc_instr->temp_u8 = state.temp_u8;
+        mc_instr->temp_u16 = state.temp_u16;
+    }
+    return instr;
 }

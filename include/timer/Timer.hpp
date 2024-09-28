@@ -6,6 +6,7 @@
 
 
 class YumeBoy;
+struct TimerSaveState;
 
 class Timer : public Memory {
     InterruptBus &interrupts;
@@ -61,5 +62,8 @@ class Timer : public Memory {
     bool contains_address(uint16_t addr) const override;
     uint8_t read_memory(uint16_t addr) override;
     void write_memory(uint16_t addr, uint8_t value) override;
+
+    TimerSaveState save_state() const;
+    void load_state(TimerSaveState state);
 
 };

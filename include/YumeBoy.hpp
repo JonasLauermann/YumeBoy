@@ -12,11 +12,13 @@
 #include "joypad/Joypad.hpp"
 #include "timer/Timer.hpp"
 #include <memory>
+#include "savestate/YumeBoySaveState.hpp"
 
 
 /** Stores all components of the emulator and facilitates communication between components. */
 class YumeBoy {
-    int64_t ticks = 0;
+    uint64_t ticks = 0;
+    const std::string& filepath;
 
     std::unique_ptr<MMU> mmu_;
     std::unique_ptr<CPU> cpu_;
@@ -33,8 +35,10 @@ class YumeBoy {
     std::unique_ptr<DMA> dma_;
     std::unique_ptr<DMA_Memory> dma_memory_;
 
+    std::unique_ptr<YumeBoySaveState> savestate;
+
     public:
-    explicit YumeBoy(const std::string& filepath, bool skip_bootrom) {
+    explicit YumeBoy(const std::string& filepath, bool skip_bootrom) : filepath(filepath) {
         mmu_ = std::make_unique<MMU>();
         dma_ = std::make_unique<DMA>(*mmu_);
         dma_memory_ = std::make_unique<DMA_Memory>(*mmu_, *dma_);
@@ -64,11 +68,7 @@ class YumeBoy {
         link_cable_ = std::make_unique<MemorySTUB>("Serial Data Transfer (Link Cable)", 0xFF01, 0xFF02);
         mmu_->add(link_cable_.get());
 
-#ifndef NDEBUG
         joypad_ = std::make_unique<Joypad>(*this, *interrupts_);
-#else
-        joypad_ = std::make_unique<Joypad>(*interrupts_);
-#endif
         mmu_->add(joypad_.get());
 
         timer_ = std::make_unique<Timer>(*interrupts_);
@@ -93,6 +93,47 @@ class YumeBoy {
 
         ppu_->tick();
         timer_->tick();
+    }
+
+    YumeBoySaveState save_state() {
+        YumeBoySaveState s = {
+            ticks,
+            filepath,
+
+            cpu_->save_state(),
+            cartridge_->save_state(),
+            ppu_->save_state(),
+            lcd_->save_state(),
+            audio_->save_state(),
+            hram_->save_state(),
+            wram_->save_state(),
+            link_cable_->save_state(),
+            joypad_->save_state(),
+            timer_->save_state(),
+            dma_->save_state(),
+        };
+        savestate = std::make_unique<YumeBoySaveState>(s);
+        return s;
+    }
+
+    void load_state() {
+        if (not savestate) return;
+
+        if (filepath.compare(savestate->filepath) != 0) return;
+
+        ticks = savestate->ticks;
+
+        cpu_->load_state(savestate->cpu_);
+        cartridge_->load_state(savestate->cartridge_);
+        ppu_->load_state(savestate->ppu_);
+        lcd_->load_state(savestate->lcd_);
+        audio_->load_state(savestate->audio_);
+        hram_->load_state(savestate->hram_);
+        wram_->load_state(savestate->wram_);
+        link_cable_->load_state(savestate->link_cable_);
+        joypad_->load_state(savestate->joypad_);
+        timer_->load_state(savestate->timer_);
+        dma_->load_state(savestate->dma_);
     }
 
 #ifndef NDEBUG

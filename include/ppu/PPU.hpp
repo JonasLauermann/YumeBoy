@@ -22,12 +22,17 @@ constexpr uint16_t LCD_REG_END = 0xFF4B;
 
 class YumeBoy;
 class LCD;
+struct PPUSaveState;
+struct OAMEntrySaveState;
 
 struct OAM_entry {
     uint8_t y;
     uint8_t x;
     uint8_t tile_id;
     uint8_t flags;
+    
+    OAMEntrySaveState save_state() const;
+    static std::unique_ptr<OAM_entry> load_state(OAMEntrySaveState state);
 };
 
 /** The Pixel-Processing Unit. It handles anything related to drawing the frames of games. */
@@ -141,4 +146,8 @@ public:
 
     /* Runs the PPU for a single T-Cycle. */
     void tick();
+
+    PPUSaveState save_state() const;
+
+    void load_state(PPUSaveState ppu_state);
 };

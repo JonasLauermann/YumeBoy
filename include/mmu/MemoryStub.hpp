@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include "mmu/RAM.hpp"
+#include <savestate/MemorySTUBSaveState.hpp>
 
 
 /** A Memory STUB used as placeholder for missing memory_ components. */
@@ -25,5 +26,18 @@ class MemorySTUB : public RAM {
     {
         std::cerr << std::format("Value {:#04X} is written to address {:#06X} in {} which is not implemented and uses a STUB!\n", value, addr, name_);
         RAM::write_memory(addr, value);
+    }
+
+    MemorySTUBSaveState save_state() {
+        MemorySTUBSaveState s = {
+            name_,
+            RAM::save_state(),
+        };
+        return s;
+    }
+
+    void load_state(MemorySTUBSaveState state) {
+        assert(name_ == state.name_);
+        RAM::load_state(state.base);
     }
 };

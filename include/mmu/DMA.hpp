@@ -8,6 +8,7 @@
 
 
 class DMA_Memory;
+struct DMASaveState;
 
 /* Implements the OAM Transfer via Direct Memory Access.
    https://hacktix.github.io/GBEDG/dma/#oam-dma
@@ -47,6 +48,9 @@ class DMA : public Memory {
         dma_pending = true;
         next_byte_addr = 0x00;
     }
+
+    DMASaveState save_state() const;
+    void load_state(DMASaveState state);
 };
 
 

@@ -5,11 +5,15 @@
 
 class YumeBoy;
 class CPU;
+struct InstructionSaveState;
 
 /* Represents a CPU instruction, should be inhertited to implement explicit instructions. */
 class Instruction {
     MMU &mem_;
     CPU &cpu_;
+
+    uint8_t opcode_;
+    bool extended_;
 
     protected:
 
@@ -89,16 +93,24 @@ class Instruction {
 
     public:
     virtual ~Instruction() = default;
-    Instruction(CPU &cpu, MMU &mem) : mem_(mem), cpu_(cpu) { }
+    Instruction(CPU &cpu, MMU &mem, uint8_t opcode, bool extended) : mem_(mem), cpu_(cpu), opcode_(opcode), extended_(extended) { }
 
     /* Executes the instruction, returns true if execution is done. */
     virtual bool execute() = 0;
+
+    uint8_t opcode() { return opcode_; }
+    bool extended() { return extended_; }
+
+    virtual InstructionSaveState save_state();
+    static std::unique_ptr<Instruction> load_state(InstructionSaveState state, CPU &cpu, MMU& mem);
 
     static std::unique_ptr<Instruction> Get(uint8_t opcode, bool extended, CPU &cpu, MMU& mem);
 };
 
 /* Represents a CPU instruction that takes longer than a single m-cycle, should be inhertited to implement explicit instructions. */
 class MultiCycleInstruction : public Instruction {
+    friend Instruction;
+
     uint8_t cycle_ = 0;
 
     protected:
@@ -152,14 +164,16 @@ class MultiCycleInstruction : public Instruction {
     bool RST(uint8_t vector);
 
     public:
-    explicit MultiCycleInstruction(CPU &cpu, MMU &mem) : Instruction(cpu, mem) { };
+    explicit MultiCycleInstruction(CPU &cpu, MMU &mem, uint8_t opcode, bool extended) : Instruction(cpu, mem, opcode, extended) { };
+
+    InstructionSaveState save_state() override;
 };
 
 #define INSTRUCTION(op, name, superclass) \
 /* op - name */ \
 class name : public superclass { \
     public: \
-    explicit name(CPU &cpu, MMU &mem) : superclass(cpu, mem) {}; \
+    explicit name(CPU &cpu, MMU &mem, bool extended) : superclass(cpu, mem, op, extended) {}; \
     \
     bool execute() override; \
 };

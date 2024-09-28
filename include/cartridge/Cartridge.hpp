@@ -4,12 +4,14 @@
 #include <cstdint>
 #include <cassert>
 #include <fstream>
+#include <memory>
 #include "mmu/Memory.hpp"
+#include <savestate/CartridgeSaveState.hpp>
 
 /** Represents the read-only memory_ of game cartridges */
 class Cartridge : public Memory
 {
-    std::vector<uint8_t> rom_bytes_;
+    const std::vector<uint8_t> rom_bytes_;
     std::vector<uint8_t> ram_bytes_;
 
     uint8_t boot_rom_enabled_ = 0x0;
@@ -60,6 +62,10 @@ public:
         else
             std::unreachable();
     }
+
+    virtual CartridgeSaveState save_state();
+
+    virtual void load_state(CartridgeSaveState state);
 };
 
 struct CartridgeFactory

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cartridge/Cartridge.hpp"
+#include <savestate/CartridgeSaveState.hpp>
 
 
 template <bool BATTERY>
@@ -69,4 +70,36 @@ public:
     // TODO: save RAM if BATTERY is available
     uint8_t read_ram(uint16_t addr) override { return Cartridge::ram_bytes(translate_ram_addr(addr)); };
     void write_ram(uint16_t addr, uint8_t value) override { Cartridge::ram_bytes(translate_ram_addr(addr), value); };
+
+    CartridgeSaveState save_state() override {
+        auto base = Cartridge::save_state();
+        CartridgeSaveState s = {
+            base.ram_bytes_,
+
+            base.boot_rom_enabled_,
+
+            base.CARTRIDGE_TYPE,
+            base.ROM_SIZE,
+            base.RAM_SIZE,
+            
+            // MBC,
+            RAM_enabled,
+            ROM_bank_number,
+            RAM_bank_number,
+
+            banking_mode_select,
+        };
+
+        return s;
+    }
+
+    void load_state(CartridgeSaveState state) override {
+        Cartridge::load_state(state);
+
+        RAM_enabled = state.RAM_enabled;
+        ROM_bank_number = state.ROM_bank_number;
+        RAM_bank_number = state.RAM_bank_number;
+
+        banking_mode_select = state.banking_mode_select;
+    }
 };

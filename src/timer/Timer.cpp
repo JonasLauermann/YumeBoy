@@ -1,6 +1,7 @@
 #include "timer/Timer.hpp"
 
 #include <cpu/InterruptBus.hpp>
+#include <savestate/TimerSaveState.hpp>
 
 
 void Timer::tick()
@@ -72,4 +73,26 @@ void Timer::write_memory(uint16_t addr, uint8_t value)
         TMA(value);
     else if (addr == 0xFF07)
         TAC(value);
+}
+
+TimerSaveState Timer::save_state() const {
+    TimerSaveState s = {
+        system_counter,
+        TAC_,
+        old_tac_bit,
+        TIMA_,
+        tima_overflow_delay,
+        TMA_
+    };
+    return s;
+}
+
+void Timer::load_state(TimerSaveState state)
+{
+    system_counter = state.system_counter;
+    TAC_ = state.TAC_;
+    old_tac_bit = state.old_tac_bit;
+    TIMA_ = state.TIMA_;
+    tima_overflow_delay = state.tima_overflow_delay;
+    TMA_ = state.TMA_;
 }

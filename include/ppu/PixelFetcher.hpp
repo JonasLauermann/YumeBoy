@@ -16,6 +16,7 @@ struct Pixel {
 
 class PPU;
 struct OAM_entry;
+struct PixelFetcherSaveState;
 
 class PixelFetcher {
     FETCHER_STATES state = FETCHER_STATES::FetchBGTileNo;
@@ -41,5 +42,8 @@ class PixelFetcher {
     void reset();
 
     bool fifo_stopped() const { return pixel_fifo_stopped; }
+
+    PixelFetcherSaveState save_state() const;
+    void load_state(PixelFetcherSaveState fetcher_state);
 
 };

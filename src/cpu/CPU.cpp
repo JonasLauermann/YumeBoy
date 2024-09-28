@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include "YumeBoy.hpp"
+#include <savestate/CPUSaveState.hpp>
 
 uint8_t CPU::fetch_byte()
 {
@@ -133,4 +134,59 @@ void CPU::tick()
     default:
         std::unreachable();
     }
+}
+
+CPUSaveState CPU::save_state() const {
+    CPUSaveState s = {
+        state,
+        instruction->save_state(),
+
+        A,
+        B,
+        C,
+        D,
+        E,
+        H,
+        L,
+
+        SP,
+        PC,
+
+        F,
+
+        IME,
+        EI_executed,
+        set_IME,
+
+        IF_,
+        IE_,
+    };
+    return s;
+}
+
+void CPU::load_state(CPUSaveState cpu_state)
+{
+    state = cpu_state.state;
+
+    instruction = instruction->load_state(cpu_state.instruction, *this, mem_);
+
+    A = cpu_state.A;
+    B = cpu_state.B;
+    C = cpu_state.C;
+    D = cpu_state.D;
+    E = cpu_state.E;
+    H = cpu_state.H;
+    L = cpu_state.L;
+
+    SP = cpu_state.SP;
+    PC = cpu_state.PC;
+
+    F = cpu_state.F;
+
+    IME = cpu_state.IME;
+    EI_executed = cpu_state.EI_executed;
+    set_IME = cpu_state.set_IME;
+
+    IF_ = cpu_state.IF_;
+    IE_ = cpu_state.IE_;
 }

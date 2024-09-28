@@ -4,14 +4,11 @@
 #include <cpu/InterruptBus.hpp>
 #include <mmu/Memory.hpp>
 
-#ifndef NDEBUG
 class YumeBoy;
-#endif
+struct JoypadSaveState;
 
 class Joypad : public Memory {
-#ifndef NDEBUG
-    YumeBoy &yume_boy_;         // Reference to Emulator for debugging
-#endif
+    YumeBoy &yume_boy_;
     InterruptBus &interrupts;
 
     struct JoypadState {
@@ -47,11 +44,7 @@ class Joypad : public Memory {
 
     public:
     Joypad() = delete;
-#ifndef NDEBUG
     explicit Joypad(YumeBoy &yume_boy, InterruptBus &interrupts) : yume_boy_(yume_boy), interrupts(interrupts) { }
-#else
-    explicit Joypad(InterruptBus &interrupts) : interrupts(interrupts) { }
-#endif
 
     bool contains_address(uint16_t addr) const override {
         return addr == 0xFF00;
@@ -69,5 +62,8 @@ class Joypad : public Memory {
 
     /* Handles `SDL_Event`s and updates P1 accrodingly and requests Interrupts if necessary. */
     void update_joypad_state();
+
+    JoypadSaveState save_state() const;
+    void load_state(JoypadSaveState state);
 
 };

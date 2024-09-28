@@ -4,6 +4,8 @@
 #include <vector>
 #include <iostream>
 
+#include <savestate/LCDSaveState.hpp>
+
 
 void LCD::push_pixel(Color c)
 {
@@ -68,8 +70,32 @@ void LCD::update_screen()
     next_frame = SDL_GetTicksNS() + FRAME_NS;
 }
 
+LCDSaveState LCD::save_state()
+{
+    LCDSaveState s = {
+        pixel_buffer,
+        buffer_it,
+
+        power_,
+
+        next_frame,
+    };
+    return s;
+}
+
+void LCD::load_state(LCDSaveState state)
+{
+    pixel_buffer = state.pixel_buffer;
+    buffer_it = state.buffer_it;
+
+    power_ = state.power_;
+
+    next_frame = state.next_frame;
+}
+
 #ifndef NDEBUG
-bool LCD::screenshot(const char* fileName) const {
+bool LCD::screenshot(const char *fileName) const
+{
     float width_f, height_f;
     SDL_GetTextureSize(pixel_matrix_texture.get(), &width_f, &height_f);
     auto width = (int)width_f;

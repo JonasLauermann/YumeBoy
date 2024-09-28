@@ -45,10 +45,32 @@ void Cartridge::ram_bytes(uint32_t addr, uint8_t value)
     ram_bytes_[addr] = value; 
 }
 
+CartridgeSaveState Cartridge::save_state()
+{
+    return {
+        ram_bytes_,
+
+        boot_rom_enabled_,
+
+        CARTRIDGE_TYPE,
+        ROM_SIZE,
+        RAM_SIZE
+    };
+}
+
+void Cartridge::load_state(CartridgeSaveState state)
+{
+    ram_bytes_ = state.ram_bytes_;
+    boot_rom_enabled_ = state.boot_rom_enabled_;
+
+    assert(CARTRIDGE_TYPE == state.CARTRIDGE_TYPE);
+    assert(ROM_SIZE == state.ROM_SIZE);
+    assert(RAM_SIZE == state.RAM_SIZE);
+}
+
 /*==============================================================================================================*/
 /* CartridgeFactory                                                                                             */
 /*==============================================================================================================*/
-
 
 std::unique_ptr<Cartridge> CartridgeFactory::Create(const std::string &filepath, bool skip_bootrom)
 {
