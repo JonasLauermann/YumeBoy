@@ -4,32 +4,67 @@
 #include <cpu/states.hpp>
 #include <savestate/InstructionSaveState.hpp>
 
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
 /* Represents the state of a `CPU` object. */
 struct CPUSaveState {
     // mem_ is reconstructed
 
-    const CPU_STATES state;
-    const InstructionSaveState instruction;
+    CPU_STATES state;
+    InstructionSaveState instruction;
 
-    const uint8_t A;
-    const uint8_t B;
-    const uint8_t C;
-    const uint8_t D;
-    const uint8_t E;
-    const uint8_t H;
-    const uint8_t L;
+    uint8_t A;
+    uint8_t B;
+    uint8_t C;
+    uint8_t D;
+    uint8_t E;
+    uint8_t H;
+    uint8_t L;
 
-    const uint16_t SP;
-    const uint16_t PC;
+    uint16_t SP;
+    uint16_t PC;
 
-    const uint8_t F;
+    uint8_t F;
 
-    const bool IME;
-    const bool EI_executed;
-    const bool set_IME;
+    bool IME;
+    bool EI_executed;
+    bool set_IME;
 
-    const uint8_t IF_;
-    const uint8_t IE_;
+    uint8_t IF_;
+    uint8_t IE_;
 
-    const bool HALT_bug;
+    bool HALT_bug;
+
+    private:
+    friend class boost::serialization::access;
+
+    template<class Archive>
+    void serialize(Archive & ar, [[maybe_unused]] const unsigned int version)
+    {
+        ar & state;
+        
+
+        ar & A;
+        ar & B;
+        ar & C;
+        ar & D;
+        ar & E;
+        ar & H;
+        ar & L;
+
+        ar & SP;
+        ar & PC;
+
+        ar & F;
+
+        ar & IME;
+        ar & EI_executed;
+        ar & set_IME;
+
+        ar & IF_;
+        ar & IE_;
+
+        ar & HALT_bug;
+    }
 };

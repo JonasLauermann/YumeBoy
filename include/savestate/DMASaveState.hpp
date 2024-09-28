@@ -2,14 +2,32 @@
 
 #include <cstdint>
 
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
 
 /* Represents the state of a `DMA` object. */
 struct DMASaveState {
-    const uint8_t DMA_;
+    uint8_t DMA_;
 
-    const bool dma_pending;
-    const bool dma_running;
+    bool dma_pending;
+    bool dma_running;
 
-    const uint8_t next_byte_addr;
-    const uint8_t last_byte;
+    uint8_t next_byte_addr;
+    uint8_t last_byte;
+
+    private:
+    friend class boost::serialization::access;
+
+    template<class Archive>
+    void serialize(Archive & ar, [[maybe_unused]] const unsigned int version)
+    {
+        ar & DMA_;
+
+        ar & dma_pending;
+        ar & dma_running;
+
+        ar & next_byte_addr;
+        ar & last_byte;
+    }
 };

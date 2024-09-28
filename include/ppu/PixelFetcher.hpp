@@ -5,6 +5,9 @@
 #include <memory>
 #include "ppu/states.hpp"
 
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
 
 /* Pixel FIFO & Fetcher */
 enum ColorPallet {BG, S0, S1};
@@ -12,6 +15,17 @@ struct Pixel {
     uint8_t color;
     ColorPallet pallet;
     bool bg_priority;
+
+    private:
+    friend class boost::serialization::access;
+
+    template<class Archive>
+    void serialize(Archive & ar, [[maybe_unused]] const unsigned int version)
+    {
+        ar & color;
+        ar & pallet;
+        ar & bg_priority;
+    }
 };
 
 class PPU;

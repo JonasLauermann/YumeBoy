@@ -16,7 +16,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
     // std::string rom_path = "../gb-test-roms/cpu_instrs/individual/10-bit ops.gb";
     // std::string rom_path = "../gb-test-roms/cpu_instrs/individual/11-op a,(hl).gb";
     // std::string rom_path = "../gb-test-roms/instr_timing/instr_timing.gb";
-    YumeBoy yume_boy(rom_path, true);
+    YumeBoy yume_boy(rom_path, false);
     while (true)
         yume_boy.tick();
     return 0;

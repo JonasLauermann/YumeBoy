@@ -18,7 +18,7 @@
 /** Stores all components of the emulator and facilitates communication between components. */
 class YumeBoy {
     uint64_t ticks = 0;
-    const std::string& filepath;
+    std::string filepath;
 
     std::unique_ptr<MMU> mmu_;
     std::unique_ptr<CPU> cpu_;
@@ -35,10 +35,8 @@ class YumeBoy {
     std::unique_ptr<DMA> dma_;
     std::unique_ptr<DMA_Memory> dma_memory_;
 
-    std::unique_ptr<YumeBoySaveState> savestate;
-
     public:
-    explicit YumeBoy(const std::string& filepath, bool skip_bootrom) : filepath(filepath) {
+    explicit YumeBoy(std::string& filepath, bool skip_bootrom) : filepath(filepath) {
         mmu_ = std::make_unique<MMU>();
         dma_ = std::make_unique<DMA>(*mmu_);
         dma_memory_ = std::make_unique<DMA_Memory>(*mmu_, *dma_);
@@ -96,6 +94,8 @@ class YumeBoy {
     }
 
     YumeBoySaveState save_state() {
+        std::ofstream file("save_state.yb", std::ios::binary);
+        boost::archive::binary_oarchive oa(file);
         YumeBoySaveState s = {
             ticks,
             filepath,
@@ -112,28 +112,33 @@ class YumeBoy {
             timer_->save_state(),
             dma_->save_state(),
         };
-        savestate = std::make_unique<YumeBoySaveState>(s);
+        oa << s;
         return s;
     }
 
     void load_state() {
-        if (not savestate) return;
+        std::ifstream file("save_state.yb", std::ios::binary);
+        boost::archive::binary_iarchive ia(file);
+        if (not file.is_open()) return;
 
-        if (filepath.compare(savestate->filepath) != 0) return;
+        YumeBoySaveState savestate;
+        ia >> savestate;
 
-        ticks = savestate->ticks;
+        if (filepath.compare(savestate.filepath) != 0) return;
 
-        cpu_->load_state(savestate->cpu_);
-        cartridge_->load_state(savestate->cartridge_);
-        ppu_->load_state(savestate->ppu_);
-        lcd_->load_state(savestate->lcd_);
-        audio_->load_state(savestate->audio_);
-        hram_->load_state(savestate->hram_);
-        wram_->load_state(savestate->wram_);
-        link_cable_->load_state(savestate->link_cable_);
-        joypad_->load_state(savestate->joypad_);
-        timer_->load_state(savestate->timer_);
-        dma_->load_state(savestate->dma_);
+        ticks = savestate.ticks;
+
+        cpu_->load_state(savestate.cpu_);
+        cartridge_->load_state(savestate.cartridge_);
+        ppu_->load_state(savestate.ppu_);
+        lcd_->load_state(savestate.lcd_);
+        audio_->load_state(savestate.audio_);
+        hram_->load_state(savestate.hram_);
+        wram_->load_state(savestate.wram_);
+        link_cable_->load_state(savestate.link_cable_);
+        joypad_->load_state(savestate.joypad_);
+        timer_->load_state(savestate.timer_);
+        dma_->load_state(savestate.dma_);
     }
 
 #ifndef NDEBUG

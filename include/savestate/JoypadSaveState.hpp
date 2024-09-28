@@ -3,19 +3,42 @@
 #include <cstdint>
 #include <vector>
 
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
 
 /* Represents the state of a `Joypad` object. */
 struct JoypadSaveState {
-    const bool select_buttons = false;
-    const bool select_dpad = false;
+    bool select_buttons = false;
+    bool select_dpad = false;
 
-    const bool start_button = false;
-    const bool select_button = false;
-    const bool b_button = false;
-    const bool a_button = false;
+    bool start_button = false;
+    bool select_button = false;
+    bool b_button = false;
+    bool a_button = false;
 
-    const bool down_dpad = false;
-    const bool up_dpad = false;
-    const bool left_dpad = false;
-    const bool right_dpad = false;
+    bool down_dpad = false;
+    bool up_dpad = false;
+    bool left_dpad = false;
+    bool right_dpad = false;
+
+    private:
+    friend class boost::serialization::access;
+
+    template<class Archive>
+    void serialize(Archive & ar, [[maybe_unused]] const unsigned int version)
+    {
+        ar & select_buttons;
+        ar & select_dpad;
+
+        ar & start_button;
+        ar & select_button;
+        ar & b_button;
+        ar & a_button;
+
+        ar & down_dpad;
+        ar & up_dpad;
+        ar & left_dpad;
+        ar & right_dpad;
+    }
 };

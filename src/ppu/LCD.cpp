@@ -74,7 +74,7 @@ LCDSaveState LCD::save_state()
 {
     LCDSaveState s = {
         pixel_buffer,
-        buffer_it,
+        std::distance(pixel_buffer.begin(), buffer_it),
 
         power_,
 
@@ -86,7 +86,7 @@ LCDSaveState LCD::save_state()
 void LCD::load_state(LCDSaveState state)
 {
     pixel_buffer = state.pixel_buffer;
-    buffer_it = state.buffer_it;
+    buffer_it = pixel_buffer.begin() + state.buffer_it;
 
     power_ = state.power_;
 

@@ -18,4 +18,4 @@ set(
 )
 
 add_executable(${PROJECT_NAME} ${YUMEBOY_SOURCES})
-target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
+target_link_libraries(${PROJECT_NAME} SDL3::SDL3 ${Boost_LIBRARIES})
