@@ -136,9 +136,9 @@ float_t PulseChannel<WithSweep>::tick()
     if ((NRX2_ & 0xF8) == 0)  // DAC is disabled
         return 0;
 
-    auto dac_input = ((wave_duty_table[wave_duty_pattern()] >> (7 - wave_duty_position)) & 1) * current_volume; // DUTY_CYCLE_OUTPUT * CURRENT_VOLUME
+    int8_t dac_input = ((wave_duty_table[wave_duty_pattern()] >> (7 - wave_duty_position)) & 1) ? current_volume : -current_volume;
 
-    float_t dac_output = float_t(dac_input / 7.5) - 1;
+    float_t dac_output = float_t(dac_input / 15.0f);
 
     return dac_output;
 }
