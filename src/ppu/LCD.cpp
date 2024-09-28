@@ -77,8 +77,6 @@ LCDSaveState LCD::save_state()
         std::distance(pixel_buffer.begin(), buffer_it),
 
         power_,
-
-        next_frame,
     };
     return s;
 }
@@ -89,8 +87,6 @@ void LCD::load_state(LCDSaveState state)
     buffer_it = pixel_buffer.begin() + state.buffer_it;
 
     power_ = state.power_;
-
-    next_frame = state.next_frame;
 }
 
 #ifndef NDEBUG

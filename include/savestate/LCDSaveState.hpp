@@ -19,7 +19,7 @@ struct LCDSaveState {
 
     bool power_;
 
-    uint64_t next_frame;
+    // next_frame mustn't be saved
 
     private:
     friend class boost::serialization::access;
@@ -31,7 +31,5 @@ struct LCDSaveState {
         ar & buffer_it;
 
         ar & power_;
-
-        ar & next_frame;
     }
 };
