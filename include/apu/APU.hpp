@@ -9,6 +9,8 @@
 #include <SDL3/SDL.h>
 
 
+class APUSaveState;
+
 class APU : public Memory {
    template <bool WithSweep>
    friend class PulseChannel;
@@ -21,10 +23,13 @@ class APU : public Memory {
       2,                // Number of channels: 1 mono, 2 stereo, etc
       SAMPLE_RATE       // sample rate: sample frames per second
    };
+   public:
+   using sample_array_t = std::array<float_t, SAMPLE_PER_BUFFER>;
 
+   private:
    MMU &mem_;
    uint32_t sample_time = 0;   /* number of t-cycles since last sample was queued. */
-   std::array<float_t, SAMPLE_PER_BUFFER> samples;
+   sample_array_t samples;
    uint16_t pushed_samples = 0;
 
     struct sdl_deleter
@@ -189,4 +194,8 @@ class APU : public Memory {
          else
             std::unreachable();
     }
+
+   APUSaveState save_state() const;
+
+   void load_state(APUSaveState apu_state);
 };

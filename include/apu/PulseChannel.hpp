@@ -4,6 +4,7 @@
 #include "mmu/Memory.hpp"
 
 class APU;
+class PulseChannelSaveState;
 
 /* https://gbdev.io/pandocs/Audio_Registers.html#sound-channel-1--pulse-with-period-sweep */
 template <bool WithSweep>
@@ -90,4 +91,8 @@ class PulseChannel {
         if (NRX4_ & (1 << 7))
             trigger();
     };
+
+   PulseChannelSaveState save_state() const;
+
+   void load_state(PulseChannelSaveState state);
 };

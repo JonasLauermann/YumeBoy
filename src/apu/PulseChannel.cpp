@@ -2,6 +2,7 @@
 
 #include <array>
 #include <apu/APU.hpp>
+#include <savestate/PulseChannelSaveState.hpp>
 
 
 const std::array<uint8_t, 4> wave_duty_table = {
@@ -141,6 +142,61 @@ float_t PulseChannel<WithSweep>::tick()
     float_t dac_output = float_t(dac_input / 15.0f);
 
     return dac_output;
+}
+
+template <bool WithSweep>
+PulseChannelSaveState PulseChannel<WithSweep>::save_state() const
+{
+    PulseChannelSaveState s = {
+        NR10_,
+        NRX1_,
+        NRX2_,
+        NRX3_,
+        NRX4_,
+
+        frequency_timer,
+
+        wave_duty_position,
+
+        DIV_APU,
+        prev_DIV_bit,
+
+        channel_enabled,
+        period_timer,
+        current_volume,
+        sweep_enabled,
+        shadow_frequency,
+        sweep_timer,
+        length_timer,
+    };
+    return s;
+}
+
+template <bool WithSweep>
+void PulseChannel<WithSweep>::load_state(PulseChannelSaveState state)
+{
+    if constexpr (WithSweep)
+        NR10_ = state.NR10_;
+    
+    NRX1_ = state.NRX1_;
+    NRX2_ = state.NRX2_;
+    NRX3_ = state.NRX3_;
+    NRX4_ = state.NRX4_;
+
+    frequency_timer = state.frequency_timer;
+
+    wave_duty_position = state.wave_duty_position;
+
+    DIV_APU = state.DIV_APU;
+    prev_DIV_bit = state.prev_DIV_bit;
+
+    channel_enabled = state.channel_enabled;
+    period_timer = state.period_timer;
+    current_volume = state.current_volume;
+    sweep_enabled = state.sweep_enabled;
+    shadow_frequency = state.shadow_frequency;
+    sweep_timer = state.sweep_timer;
+    length_timer = state.length_timer;
 }
 
 template class PulseChannel<true>; // instantiate PulseChannel with sweep

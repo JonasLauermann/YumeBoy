@@ -106,7 +106,7 @@ class YumeBoy {
             cartridge_->save_state(),
             ppu_->save_state(),
             lcd_->save_state(),
-            audio_->save_state(),
+            apu_->save_state(),
             hram_->save_state(),
             wram_->save_state(),
             link_cable_->save_state(),
@@ -134,7 +134,7 @@ class YumeBoy {
         cartridge_->load_state(savestate.cartridge_);
         ppu_->load_state(savestate.ppu_);
         lcd_->load_state(savestate.lcd_);
-        audio_->load_state(savestate.audio_);
+        apu_->load_state(savestate.apu_);
         hram_->load_state(savestate.hram_);
         wram_->load_state(savestate.wram_);
         link_cable_->load_state(savestate.link_cable_);

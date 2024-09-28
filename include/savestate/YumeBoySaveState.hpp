@@ -7,6 +7,7 @@
 #include <savestate/CartridgeSaveState.hpp>
 #include <savestate/PPUSaveState.hpp>
 #include <savestate/LCDSaveState.hpp>
+#include <savestate/APUSaveState.hpp>
 #include <savestate/MemorySTUBSaveState.hpp>
 #include <savestate/RAMSaveState.hpp>
 #include <savestate/JoypadSaveState.hpp>
@@ -27,7 +28,7 @@ struct YumeBoySaveState {
     CartridgeSaveState cartridge_;
     PPUSaveState ppu_;
     LCDSaveState lcd_;
-    MemorySTUBSaveState audio_;
+    APUSaveState apu_;
     RAMSaveState hram_;
     RAMSaveState wram_;
     MemorySTUBSaveState link_cable_;
@@ -50,7 +51,7 @@ struct YumeBoySaveState {
         ar & cartridge_;
         ar & ppu_;
         ar & lcd_;
-        ar & audio_;
+        ar & apu_;
         ar & hram_;
         ar & wram_;
         ar & link_cable_;

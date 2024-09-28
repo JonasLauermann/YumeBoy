@@ -1,5 +1,7 @@
 #include <apu/APU.hpp>
 
+#include <savestate/APUSaveState.hpp>
+
 
 void APU::tick()
 {
@@ -45,4 +47,39 @@ void APU::tick()
       ++sample_time;
    }
 
+}
+
+APUSaveState APU::save_state() const
+{
+   APUSaveState s = {
+      sample_time,
+      samples,
+      pushed_samples,
+
+      channel1->save_state(),
+      channel2->save_state(),
+      // TODO channel 3
+      // TODO channel 4
+
+      NR50,
+      NR51,
+      NR52,
+   };
+   return s;
+}
+
+void APU::load_state(APUSaveState apu_state)
+{
+   sample_time = apu_state.sample_time;
+   samples = apu_state.samples;
+   pushed_samples = apu_state.pushed_samples;
+
+   channel1->load_state(apu_state.channel1);
+   channel2->load_state(apu_state.channel2);
+   // TODO channel 3
+   // TODO channel 4
+   
+   NR50 = apu_state.NR50;
+   NR51 = apu_state.NR51;
+   NR52 = apu_state.NR52;
 }

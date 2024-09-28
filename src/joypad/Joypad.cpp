@@ -54,6 +54,7 @@ void Joypad::update_joypad_state()
                 case SDL_SCANCODE_2:
                     yume_boy_.screenshot();
                     break;
+#endif
                 
                 case SDL_SCANCODE_3:
                     yume_boy_.save_state();
@@ -62,7 +63,6 @@ void Joypad::update_joypad_state()
                 case SDL_SCANCODE_4:
                     yume_boy_.load_state();
                     break;
-#endif
                 default:
                     break;
                 }
