@@ -1,3 +1,4 @@
+add_subdirectory(apu)
 add_subdirectory(cartridge)
 add_subdirectory(cpu)
 add_subdirectory(joypad)
@@ -9,6 +10,7 @@ add_subdirectory(mmu)
 set(
     YUMEBOY_SOURCES
     main.cpp
+    $<TARGET_OBJECTS:apu>
     $<TARGET_OBJECTS:cartridge>
     $<TARGET_OBJECTS:cpu>
     $<TARGET_OBJECTS:joypad>

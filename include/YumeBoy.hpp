@@ -1,5 +1,6 @@
 #pragma once
 
+#include "apu/APU.hpp"
 #include "cpu/CPU.hpp"
 #include "cpu/InterruptBus.hpp"
 #include "cartridge/Cartridge.hpp"
@@ -25,7 +26,7 @@ class YumeBoy {
     std::unique_ptr<Cartridge> cartridge_;
     std::unique_ptr<PPU> ppu_;
     std::unique_ptr<LCD> lcd_;
-    std::unique_ptr<MemorySTUB> audio_;
+    std::unique_ptr<APU> apu_;
     std::unique_ptr<RAM> hram_;
     std::unique_ptr<RAM> wram_;
     std::unique_ptr<MemorySTUB> link_cable_;
@@ -54,8 +55,8 @@ class YumeBoy {
         ppu_ = std::make_unique<PPU>(*lcd_, *dma_memory_, *interrupts_);
         mmu_->add(ppu_.get());
 
-        audio_ = std::make_unique<MemorySTUB>("Audio", 0xFF10, 0xFF26);
-        mmu_->add(audio_.get());
+        apu_ = std::make_unique<APU>(*mmu_);
+        mmu_->add(apu_.get());
 
         hram_ = std::make_unique<RAM>(0xFF80, 0xFFFE);
         mmu_->add(hram_.get());
@@ -89,6 +90,7 @@ class YumeBoy {
             joypad_->update_joypad_state();
         }
 
+        apu_->tick();
         ppu_->tick();
         timer_->tick();
     }
