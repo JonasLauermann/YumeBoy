@@ -16,8 +16,8 @@ class APU : public Memory {
    friend class PulseChannel;
 
    static constexpr uint32_t CPU_FREQUENCY = 1 << 22;
-   static constexpr uint16_t SAMPLE_RATE = 48000;
-   static constexpr uint16_t SAMPLE_PER_BUFFER = 1024;
+   static constexpr uint16_t SAMPLE_RATE = 32'768; // unconventional sampling rate, but divides the CPU_FREQ without remainder. Higher sampling rates caused crackling without improving the sound quality overall.
+   static constexpr uint16_t SAMPLE_PER_BUFFER = 512;
    static constexpr SDL_AudioSpec spec = {
       SDL_AUDIO_F32,    // Audio data format
       2,                // Number of channels: 1 mono, 2 stereo, etc
@@ -75,7 +75,7 @@ class APU : public Memory {
 
       stream = std::unique_ptr<SDL_AudioStream, sdl_deleter>(SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec, nullptr, nullptr), sdl_deleter());
 
-      SDL_ResumeAudioDevice(SDL_GetAudioStreamDevice(stream.get()));
+      SDL_ResumeAudioStreamDevice(stream.get());
    }
 
    /* Runs the APU for an */

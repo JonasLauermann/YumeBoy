@@ -5,6 +5,7 @@
 
 void APU::tick()
 {
+   ++sample_time;
    float_t right_out = 0;
    float_t left_out = 0;
    if (NR52 & (1 << 7)) {
@@ -33,18 +34,32 @@ void APU::tick()
    }
 
    // check if sample should be queued
-   if (sample_time == 4194304 / SAMPLE_RATE) {
+   if (sample_time == (CPU_FREQUENCY / SAMPLE_RATE)) {
+
       sample_time = 0;
       samples[pushed_samples] = left_out;
       samples[pushed_samples + 1] = right_out;
       pushed_samples += 2;
 
       if (pushed_samples == SAMPLE_PER_BUFFER) {
+
+         pushed_samples = 0;  // clearing the array itself is not necessary, we just overwrite old values
+         assert(not samples.empty());
+         // only add new samples if previous sample is almost used up
+         if (SDL_GetAudioStreamAvailable(stream.get()) > ((SAMPLE_RATE * 2 /* stero sound */ * sizeof(samples[0]) /* single sample size */) / 16))
+            return;
+
+         // std::cerr << std::format("Pushing {} bytes\n", sizeof(samples));
+         if (int available = SDL_GetAudioStreamAvailable(stream.get()); available == 0) {
+            // The stream has run out of samples
+            std::cerr << "No more samples available in the audio stream. This can cause crackeling\n";
+         } else {
+            // There are still samples available
+            // std::cerr << std::format("Samples available: {} bytes\n", available);
+         }
+
          SDL_PutAudioStreamData(stream.get(), samples.data(), sizeof(samples));
-         pushed_samples = 0;  // clearing the array itself should not be necessary
       }
-   } else {
-      ++sample_time;
    }
 
 }
@@ -52,10 +67,6 @@ void APU::tick()
 APUSaveState APU::save_state() const
 {
    APUSaveState s = {
-      sample_time,
-      samples,
-      pushed_samples,
-
       channel1->save_state(),
       channel2->save_state(),
       // TODO channel 3
@@ -70,10 +81,6 @@ APUSaveState APU::save_state() const
 
 void APU::load_state(APUSaveState apu_state)
 {
-   sample_time = apu_state.sample_time;
-   samples = apu_state.samples;
-   pushed_samples = apu_state.pushed_samples;
-
    channel1->load_state(apu_state.channel1);
    channel2->load_state(apu_state.channel2);
    // TODO channel 3
