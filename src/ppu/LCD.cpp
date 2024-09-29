@@ -63,13 +63,12 @@ void LCD::update_screen()
 
     buffer_it = pixel_buffer.begin();
 
-    // check if the next frame should be rendered or if the thread should sleep
+    // frame cap: check if the next frame should be rendered or if the thread should sleep
     if (auto current_time = SDL_GetTicksNS(); current_time < next_frame) {
         SDL_DelayNS(next_frame - current_time);
     } else {
         std::cerr << "Frame took to long!\n";
     }
-    // next_frame = SDL_GetTicksNS() + FRAME_NS;
     next_frame += FRAME_NS;
 }
 

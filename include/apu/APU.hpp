@@ -12,8 +12,8 @@
 class APUSaveState;
 
 class APU : public Memory {
-   template <bool WithSweep>
-   friend class PulseChannel;
+   template <bool WithEnvelope>
+   friend class AudioChannel;
 
    static constexpr uint32_t CPU_FREQUENCY = 1 << 22;
    static constexpr uint16_t SAMPLE_RATE = 32'768; // unconventional sampling rate, but divides the CPU_FREQ without remainder. Higher sampling rates caused crackling without improving the sound quality overall.
