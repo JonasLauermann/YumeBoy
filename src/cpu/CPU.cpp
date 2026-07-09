@@ -1,7 +1,7 @@
-#include "cpu/CPU.hpp"
+#include <cpu/CPU.hpp>
 
 #include <iostream>
-#include "YumeBoy.hpp"
+#include <YumeBoy.hpp>
 #include <savestate/CPUSaveState.hpp>
 
 uint8_t CPU::fetch_byte()

@@ -5,7 +5,6 @@ add_subdirectory(ppu)
 add_subdirectory(timer)
 add_subdirectory(mmu)
 
-
 set(
     YUMEBOY_SOURCES
     main.cpp
@@ -18,4 +17,10 @@ set(
 )
 
 add_executable(${PROJECT_NAME} ${YUMEBOY_SOURCES})
-target_link_libraries(${PROJECT_NAME} SDL3::SDL3 ${Boost_LIBRARIES})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    project_warnings
+    project_include_dirs
+    SDL3::SDL3
+    Boost::serialization
+)

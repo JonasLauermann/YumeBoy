@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cartridge/Cartridge.hpp"
+#include <cartridge/Cartridge.hpp>
 
 
 class ROM_ONLY : public Cartridge

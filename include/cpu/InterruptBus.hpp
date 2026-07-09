@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <utility>
-#include "cpu/CPU.hpp"
+#include <cpu/CPU.hpp>
 
 
 class InterruptBus {

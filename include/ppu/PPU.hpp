@@ -9,9 +9,9 @@
 #include <stdexcept>
 #include <vector>
 #include <cpu/InterruptBus.hpp>
-#include "ppu/PixelFetcher.hpp"
-#include "ppu/states.hpp"
-#include "mmu/Memory.hpp"
+#include <ppu/PixelFetcher.hpp>
+#include <ppu/states.hpp>
+#include <mmu/Memory.hpp>
 
 constexpr uint16_t VRAM_BEGIN = 0x8000;
 constexpr uint16_t VRAM_END = 0x9FFF;

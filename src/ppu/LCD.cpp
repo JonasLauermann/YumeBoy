@@ -1,4 +1,4 @@
-#include "ppu/LCD.hpp"
+#include <ppu/LCD.hpp>
 
 #include <cassert>
 #include <vector>

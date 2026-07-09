@@ -1,7 +1,7 @@
-#include "joypad/Joypad.hpp"
+#include <joypad/Joypad.hpp>
 
-#include "YumeBoy.hpp"
-#include "SDL3/SDL_events.h"
+#include <YumeBoy.hpp>
+#include <SDL3/SDL_events.h>
 #include <savestate/JoypadSaveState.hpp>
 
 uint8_t Joypad::P1() const

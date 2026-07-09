@@ -1,4 +1,4 @@
-#include "timer/Timer.hpp"
+#include <timer/Timer.hpp>
 
 #include <cpu/InterruptBus.hpp>
 #include <savestate/TimerSaveState.hpp>

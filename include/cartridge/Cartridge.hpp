@@ -5,7 +5,7 @@
 #include <cassert>
 #include <fstream>
 #include <memory>
-#include "mmu/Memory.hpp"
+#include <mmu/Memory.hpp>
 #include <savestate/CartridgeSaveState.hpp>
 
 /** Represents the read-only memory_ of game cartridges */

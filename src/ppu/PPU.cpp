@@ -1,6 +1,6 @@
-#include "ppu/PPU.hpp"
+#include <ppu/PPU.hpp>
 
-#include "YumeBoy.hpp"
+#include <YumeBoy.hpp>
 #include <savestate/PPUSaveState.hpp>
 #include <savestate/OAMEntrySaveState.hpp>
 

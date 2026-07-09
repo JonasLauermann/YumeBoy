@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <queue>
 #include <memory>
-#include "ppu/states.hpp"
+#include <ppu/states.hpp>
 
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/archive/binary_iarchive.hpp>

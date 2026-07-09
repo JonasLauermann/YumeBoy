@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 build/
+roms/
 *.code-workspace
 *.log
 *.ppm

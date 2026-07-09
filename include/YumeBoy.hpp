@@ -1,18 +1,18 @@
 #pragma once
 
-#include "cpu/CPU.hpp"
-#include "cpu/InterruptBus.hpp"
-#include "cartridge/Cartridge.hpp"
-#include "mmu/RAM.hpp"
-#include "mmu/MemoryStub.hpp"
-#include "mmu/MMU.hpp"
-#include "mmu/DMA.hpp"
-#include "ppu/LCD.hpp"
-#include "ppu/PPU.hpp"
-#include "joypad/Joypad.hpp"
-#include "timer/Timer.hpp"
+#include <cpu/CPU.hpp>
+#include <cpu/InterruptBus.hpp>
+#include <cartridge/Cartridge.hpp>
+#include <mmu/RAM.hpp>
+#include <mmu/MemoryStub.hpp>
+#include <mmu/MMU.hpp>
+#include <mmu/DMA.hpp>
+#include <ppu/LCD.hpp>
+#include <ppu/PPU.hpp>
+#include <joypad/Joypad.hpp>
+#include <timer/Timer.hpp>
 #include <memory>
-#include "savestate/YumeBoySaveState.hpp"
+#include <savestate/YumeBoySaveState.hpp>
 
 
 /** Stores all components of the emulator and facilitates communication between components. */

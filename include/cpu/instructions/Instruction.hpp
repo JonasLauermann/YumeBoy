@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <mmu/MMU.hpp>
+#include <memory>
 
 class YumeBoy;
 class CPU;
@@ -177,8 +178,8 @@ class name : public superclass { \
     \
     bool execute() override; \
 };
-#include "cpu/instructions/opcodes.tbl"
-#include "cpu/instructions/extended_opcodes.tbl"
+#include <cpu/instructions/opcodes.tbl>
+#include <cpu/instructions/extended_opcodes.tbl>
 #undef INSTRUCTION
 
 

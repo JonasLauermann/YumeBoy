@@ -1,9 +1,9 @@
 #include <cpu/instructions/Instruction.hpp>
 
-#include "cpu/CPU.hpp"
+#include <cpu/CPU.hpp>
 #include <cstdint>
 #include <utility>
-#include "YumeBoy.hpp"
+#include <YumeBoy.hpp>
 #include <savestate/InstructionSaveState.hpp>
 
 
@@ -18,7 +18,7 @@ std::unique_ptr<Instruction> Instruction::Get(uint8_t opcode, bool extended, CPU
     if (extended) {
         switch (opcode)
         {
-        #include "cpu/instructions/extended_opcodes.tbl"
+        #include <cpu/instructions/extended_opcodes.tbl>
         
         default:
             std::unreachable();
@@ -26,7 +26,7 @@ std::unique_ptr<Instruction> Instruction::Get(uint8_t opcode, bool extended, CPU
     } else {
         switch (opcode)
         {
-        #include "cpu/instructions/opcodes.tbl"
+        #include <cpu/instructions/opcodes.tbl>
         
         default:
             std::unreachable();

@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cstdint>
 #include <vector>
-#include "mmu/Memory.hpp"
+#include <mmu/Memory.hpp>
 #include <savestate/RAMSaveState.hpp>
 
 

@@ -1,11 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
-#include "cpu/instructions/Instruction.hpp"
-#include "cpu/states.hpp"
-#include "mmu/Memory.hpp"
-#include "mmu/MMU.hpp"
+#include <cpu/instructions/Instruction.hpp>
+#include <cpu/states.hpp>
+#include <mmu/Memory.hpp>
+#include <mmu/MMU.hpp>
 
 
 class YumeBoy;
@@ -18,8 +17,8 @@ class CPU : public Memory {
     friend MultiCycleInstruction;
 
     #define INSTRUCTION(op, name, superclass) friend class name;
-    #include "cpu/instructions/opcodes.tbl"
-    #include "cpu/instructions/extended_opcodes.tbl"
+    #include <cpu/instructions/opcodes.tbl>
+    #include <cpu/instructions/extended_opcodes.tbl>
     #undef INSTRUCTION
 
     MMU &mem_;

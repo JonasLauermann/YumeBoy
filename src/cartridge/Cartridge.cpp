@@ -1,4 +1,4 @@
-#include "cartridge/Cartridge.hpp"
+#include <cartridge/Cartridge.hpp>
 
 #include <array>
 #include <cartridge/RomOnly.hpp>

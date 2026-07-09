@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cartridge/Cartridge.hpp"
+#include <cartridge/Cartridge.hpp>
 #include <savestate/CartridgeSaveState.hpp>
 
 
