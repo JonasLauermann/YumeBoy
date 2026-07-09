@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fstream>
+
 #include <cpu/CPU.hpp>
 #include <cpu/InterruptBus.hpp>
 #include <cartridge/Cartridge.hpp>
@@ -232,7 +234,7 @@ class YumeBoy {
         
 
         //Image Body - outputs image_data array to the .ppm file, creating the image
-        for (int x = 0; x < SIZE; x += 3) {
+        for (size_t x = 0; x < SIZE; x += 3) {
             int r = image_data[x];		//Sets value as an integer, not a character value
             int g = image_data[x+1];		//Sets value as an integer, not a character value
             int b = image_data[x+2];		//Sets value as an integer, not a character value

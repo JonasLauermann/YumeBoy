@@ -3,6 +3,7 @@
 #include <mmu/Memory.hpp>
 #include <iostream>
 #include <format>
+#include <vector>
 
 
 class MMU {

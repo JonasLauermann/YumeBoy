@@ -3,7 +3,6 @@
 #include <vector>
 #include <cstdint>
 #include <cassert>
-#include <fstream>
 #include <memory>
 #include <mmu/Memory.hpp>
 #include <savestate/CartridgeSaveState.hpp>

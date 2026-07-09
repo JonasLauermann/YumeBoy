@@ -3,6 +3,7 @@
 #include <array>
 #include <cartridge/RomOnly.hpp>
 #include <cartridge/MBC1.hpp>
+#include <fstream>
 #include <iostream>
 
 

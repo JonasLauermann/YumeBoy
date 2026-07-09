@@ -2,6 +2,7 @@
 
 #include <cpu/InterruptBus.hpp>
 #include <savestate/TimerSaveState.hpp>
+#include <utility>
 
 
 void Timer::tick()
@@ -61,6 +62,8 @@ uint8_t Timer::read_memory(uint16_t addr)
         return TMA();
     else if (addr == 0xFF07)
         return TAC();
+    else
+        std::unreachable();
 }
 
 void Timer::write_memory(uint16_t addr, uint8_t value)

@@ -90,7 +90,7 @@ void PixelFetcher::tick()
     }
 
     case FETCHER_STATES::PushToSpriteFIFO: {
-        for (int i = 0; i < 8; ++i)
+        for (size_t i = 0; i < 8; ++i)
         {
             // flip pixels vertically if flag is set
             int j = oam_entry->flags & (1 << 6) ? i : 7 - i;

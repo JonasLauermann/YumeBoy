@@ -1,8 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
-#include <queue>
 #include <ppu/states.hpp>
 #include <savestate/OAMEntrySaveState.hpp>
 

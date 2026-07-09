@@ -1,6 +1,5 @@
 #include <cpu/CPU.hpp>
 
-#include <iostream>
 #include <YumeBoy.hpp>
 #include <savestate/CPUSaveState.hpp>
 
@@ -160,6 +159,8 @@ CPUSaveState CPU::save_state() const {
 
         IF_,
         IE_,
+
+        HALT_bug,
     };
     return s;
 }

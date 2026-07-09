@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 
 #include <savestate/CPUSaveState.hpp>
 #include <savestate/CartridgeSaveState.hpp>

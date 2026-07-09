@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cstdint>
-#include <vector>
 
 
 class Memory {
